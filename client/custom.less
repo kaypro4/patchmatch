@@ -1,12 +1,15 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
 body {
-    padding: 0;
-    margin: 0;
+  font-family: Arial;
 }
 
+#map{width:100%;position:absolute;top:50px;bottom:0px;left:0;right:0;min-height:500px;}
 
-html, body, #map {
-    height: 100%;
-}
 
 body,.navbar-brand,.navbar-nav{
 	font-family: 'Open Sans', serif;
@@ -20,6 +23,10 @@ body,.navbar-brand,.navbar-nav{
 	position:relative;
 	margin-bottom: 20px;
 	font-family: 'Open Sans', serif;
+}
+
+#listings{
+	overflow-y: scroll;
 }
 
 .listing-title{
@@ -40,11 +47,14 @@ h3.listing-title{
 	color: #fff;
 }
 
-.left-side{
-  padding-top: 80px;
+.left-side,
+.spacey{
+  margin-top: 50px;
 }
 
-#map{height:500px;}
+.left-side{
+  top: 20px;
+}
 
 .carousel .item {
     width: 100%; /*slider width*/
@@ -65,4 +75,17 @@ h3.listing-title{
         margin-left: -20px;
         margin-right: -20px;
     }
+}
+
+form input[type="text"], form input[type="number"] {
+  padding: 15px;
+  border: none;
+  border-bottom: solid 2px #c9c9c9;
+  transition: border 0.3s;
+  height: 100%;
+  border-radius: 0px;
+}
+
+#insertForm .panel {
+  display: none;
 }

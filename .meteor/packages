@@ -12,4 +12,10 @@ browser-policy
 nemo64:bootstrap
 less
 iron:router
-autopublish
+aldeed:autoform
+cfs:autoform
+cfs:gridfs
+aldeed:collection2
+aldeed:geocoder
+cfs:standard-packages
+matb33:collection-hooks
