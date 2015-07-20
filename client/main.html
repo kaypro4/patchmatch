@@ -1,5 +1,5 @@
 <head>
-  <title>Tiny Patch</title>
+  <title>No 209</title>
   <link href='https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-locatecontrol/v0.43.0/css/font-awesome.min.css' rel='stylesheet' />
   <link href='http://fonts.googleapis.com/css?family=Open+Sans:400italic,400,700' rel='stylesheet' type='text/css'>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -17,15 +17,20 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span> 
           </button>
-          <a class="navbar-brand" href="/">Patch Match</a>
+          <a class="navbar-brand" href="/"><img src="/images/logo_50px.png" style="height:100%;" /></a>
         </div>
         <div class="collapse navbar-collapse" id="myNavbar">
           <ul class="nav navbar-nav">
-            <li><a href="/new">Add</a></li>
+            {{#if currentUser}}
+            <li><a href="/mylistings">My Listings</a></li>
+            {{/if}}
           </ul>
           <ul class="nav navbar-nav navbar-right">
+            <!--
             <li><a href="#"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
             <li><a href="#"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+            -->
+            {{> loginButtons align="right"}}
           </ul>
         </div>
       </div>
@@ -34,30 +39,60 @@
     {{> yield}}
 </template>
 
-<template name="listing">
+<template name="mylistings">
     <div class="col-md-12 left-side">
-    <h1>{{title}}</h1>
-    <p>ID: {{_id}}</p>
-    
-    <section class="block">
-        <div id="myCarousel" class="carousel slide">
-            <div class="carousel-inner">
-                <div class="active item">
-                    <img src="{{photo}}" class="img-responsive" style="width:100%;"/>
-                </div>
-                <div class="item">
-                    <img src="{{photo}}" class="img-responsive" style="width:100%;"/>
-                </div>
-                <div class="item">
-                    <img src="{{photo}}" class="img-responsive" style="width:100%;"/>
-                </div>
-            </div>
-            <a class="carousel-control left" href="#myCarousel" data-slide="prev">‹</a>
-            <a class="carousel-control right" href="#myCarousel" data-slide="next">›</a>
-
-        </div>
-    </section>
+    <h2>Your Listings&nbsp;&nbsp;<a href="/new" style="font-size:65%;"><i class="fa fa-plus"></i> Add Listing</a></h2>
+    <ul>
+    {{#each results}}
+    <li><a href="listing/{{_id}}" target="_self">{{title}}</a>&nbsp;&nbsp;<a href="update/{{_id}}" target="_self"><i class="fa fa-pencil"></i></a></li>
+    {{/each}}
+    </ul>
     </div>
+</template>
+
+<template name="listing">
+    <div class="col-md-8 left-side" id="listing">
+      <h1>{{title}}</h1>
+      <div class="contact-link">
+      {{#unless isOwner userId}}
+        {{#if currentUser}}
+        <a href="#" id="comment">Contact <i class="fa fa-envelope"></i></a>
+        {{else}}
+        Log in to send a message
+        {{/if}}
+      {{/unless}}
+      </div>
+
+      <section class="block" style="clear:both;">
+          <div id="myCarousel" class="carousel slide">
+              <div class="carousel-inner">
+
+                  <div class="active item">
+                      <img src="{{photourl.url}}" class="img-responsive" style="width:100%;"/>
+                  </div>
+              </div>
+              <a class="carousel-control left" href="#myCarousel" data-slide="prev">‹</a>
+              <a class="carousel-control right" href="#myCarousel" data-slide="next">›</a>
+
+          </div>
+      </section>
+    </div>
+    <div class="col-md-4 right-side">
+      <div class="spacey"></div>
+      {{#if isOwner userId}}
+      <h3>Listing Contacts</h3>
+      <ul>
+      {{#each contacts}}
+      <li> - {{comment}} <a href="#" id="viewprofile"><i class="fa fa-reply"></i></a></li>
+      {{/each}}
+      </ul>
+      {{else}}
+      Display an indicator if I have ever contacted this one...
+      {{/if}}
+    </div>
+
+
+      
 </template>
 
 <template name="home">
@@ -66,14 +101,18 @@
       {{#each results}}
         <div class="col-md-6">
         <div class="listing">
-          <a href="listing/{{_id}}" target="_blank">
+          <a href="listing/{{_id}}">
             <div class="overlay-price">$ {{price}}/mo</div>
-            <img src="{{photo}}" class="img-responsive" style="width:100%;"/>
+            <img src="{{photourl.url}}" class="img-responsive" style="width:100%;"/>
             <div class="details"><h3 class="listing-title">{{title}}</h3></div>
           </a>
+          {{#if currentUser}}
+          <div class="contact-link"><a href="#" id="comment">Contact <i class="fa fa-envelope"></i></a></div>
+           {{/if}}
         </div>
       </div>
       {{/each}}
+
     </div>
 
     <div class="col-md-5 right-side">
@@ -99,9 +138,127 @@
     {{> afQuickField name="title"}}
     {{> afQuickField name="address"}}
     {{> afQuickField name="price"}}
-    {{> afQuickField name="coordinates"}}
+    {{> afQuickField name="photo"}}
+    {{> afQuickField name="coordinates" class="coordinates"}}
     <button type="submit">Submit</button>
     {{/autoForm}}
   </div>
 
+</template>
+
+
+<template name="update">
+  <div class="spacey"></div>
+  <div class="col-md-6">
+    <h1>Update</h1>
+    <div class="upload-images" style="float:right;"><a href="#" id="uploadimages">Upload more images</a></div>
+    <br />
+    {{#autoForm id="updateForm" doc=this type="update" collection="Listings"}}
+    {{> afQuickField name="title"}}
+    {{> afQuickField name="address"}}
+    {{> afQuickField name="price"}}
+    {{> afQuickField name="photo"}}
+    {{> afQuickField name="coordinates" class="coordinates"}}
+    <button type="submit">Submit</button>
+    {{/autoForm}}
+    
+  </div>
+
+</template>
+
+<template name="clear">
+  <div class="spacey"></div>
+  <div class="col-md-6">
+    <h1>Clear Collections</h1>
+    All collection items have been deleted.
+    {{clear}}
+  </div>
+
+</template>
+
+
+<template name="commentModal">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Contact</h4>
+                </div>
+
+                <div class="modal-body">
+                    {{#autoForm id="insertComment" type="insert" collection="Contacts"}}
+                    {{> afQuickField name="comment" rows=6}}
+                    {{> afQuickField name="listingId" value=listingid}}
+                     
+                    <button type="submit">Submit</button>
+                    {{/autoForm}}
+
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="fileUploader">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Upload photo gallery</h4>
+                </div>
+
+                <div class="modal-body">
+                    {{#autoForm id="insertGallery" type="insert" collection="Photos"}}
+
+                    {{> afQuickField name="photo" multiple=true}}
+                    {{> afQuickField name="listingId" value=listingid}}
+                     
+                    <button type="submit">Submit</button>
+                    {{/autoForm}}
+
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="viewProfile">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Reply</h4>
+                </div>
+
+
+                <div class="modal-body">
+                  <h3>Insert info about the contactor...</h3>
+
+
+                    {{#autoForm id="insertComment" type="insert" collection="Contacts"}}
+                    {{> afQuickField name="comment" rows=6}}
+                    {{> afQuickField name="listingId" value=listingid}}
+                     
+                    <button type="submit">Submit</button>
+                    {{/autoForm}}
+
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
 </template>

@@ -6,6 +6,7 @@ Images = new FS.Collection("images", {
   ]
 });
 
+
 var createThumb = function(fileObj, readStream, writeStream) {
   // Transform the image into a 10x10px thumbnail
   gm(readStream, fileObj.name()).resize('840', '450').stream().pipe(writeStream);
@@ -19,43 +20,8 @@ Images.allow({
 });
 
 Listings = new Mongo.Collection("listings");
-Photos = new Mongo.Collection("photos");
 Contacts = new Mongo.Collection("contacts");
 MapBounds = new Mongo.Collection(null);
-
-Photos.attachSchema(new SimpleSchema({
-  title: {
-    type: String,
-    label: "Title",
-    max: 200
-  },
-  photo: {
-    type: [String],
-    label: "Photos",
-    autoform: {
-      afFieldInput: {
-        type: "cfs-file",
-        collection: "images"
-      }
-    },
-    optional: true
-  },
-  listingId: {
-    type: String,
-    label: "",
-    max: 200,
-    optional: true,
-    autoform: {
-      afFieldInput: {
-        type: "hidden"
-      },
-      afFormGroup: {
-	    label: false
-	  }
-    }
-  },
-}));
-
 
 Listings.attachSchema(new SimpleSchema({
   title: {
@@ -65,17 +31,17 @@ Listings.attachSchema(new SimpleSchema({
   },
   photo: {
     type: String,
-    label: "Primary Photo",
     autoform: {
       afFieldInput: {
         type: "cfs-file",
         collection: "images"
       }
-    }
+    },
+    optional: true
   },
   price: {
     type: Number,
-    label: "Price per month",
+    label: "Price",
     min: 0
   },
   lat: {
@@ -93,7 +59,8 @@ Listings.attachSchema(new SimpleSchema({
   address: {
     type: String,
     label: "Address",
-    max: 200
+    max: 200,
+    optional: true
   },
   userId: {
     type: String,
@@ -134,33 +101,20 @@ coordinates: {
 Contacts.attachSchema(new SimpleSchema({
   comment: {
     type: String,
-    label: "Your message",
-    max: 500
+    label: "Your message to the lister",
+    max: 200
   },
   listingId: {
     type: String,
-    label: "",
+    label: "ListingId",
     max: 200,
-    optional: true,
-    autoform: {
-      afFieldInput: {
-        type: "hidden"
-      },
-      afFormGroup: {
-	    label: false
-	  }
-    }
+    optional: true
   },
   userId: {
     type: String,
     label: "UserId",
     max: 200,
     optional: true
-  },
-  createdAt: {
-    type: Date,
-    label: "Date created",
-    defaultValue: new Date()
   }
 }));
 
@@ -170,7 +124,6 @@ Router.configure({
 
 Router.route('about'); 
 Router.route('new');  
-Router.route('clear'); 
 
 Router.route('home', {
 	path: '/'
@@ -181,13 +134,6 @@ Router.route('listing', {
 	data: function () {return Listings.findOne({_id: this.params._id})},
 	template: 'listing'
 });
-
-Router.route('update', {
-	path: '/update/:_id',
-	data: function () {return Listings.findOne({_id: this.params._id})},
-	template: 'update'
-});
-
 
 Router.route('mylistings', {
 	path: '/mylistings',
@@ -204,7 +150,7 @@ if(Meteor.isClient){
 
     // on startup run resizing event
 	Meteor.startup(function() {
-	  toastr.options.positionClass = "toast-bottom-right";
+	  
 	});
 	
 	Template.map.rendered = function() {
@@ -287,55 +233,17 @@ if(Meteor.isClient){
 	};
 
 	Listings.helpers({
-	  'photourl': function() {
+	  photourl: function() {
 	    return Images.findOne(this.photo);
 	  }
 	});
 
-	Contacts.helpers({
-	  'listing': function() {
-	    return Listings.findOne(this.listingId);
-	  },
-	  'contactor': function() {
-	    return Meteor.users.findOne(this.userId);
-	  }
-	});
-
-
-	Template.clear.helpers({
-	'clear': function(){
-        Meteor.call('deleteAll');
-    }
-	});
-
-	Template.listing.isOwner = function() {
-	    //return this.userId === Meteor.userId();
-	};
-
-
-	Template.listing.helpers({
-    'contacts': function(){
-        return Contacts.find({'listingId': this._id}, {sort: {createdAt: -1}});
-    },
-    'isOwner': function(thisUserId) {
-
-    	if (thisUserId && (thisUserId._id === Meteor.userId())) {
-    		return true
-    	}else{
-    		return false
-    	}
-	}
-	});
-
-
 	Template.mylistings.helpers({
     'results': function(){
         return Listings.find({'userId._id': Meteor.userId()}, {sort: {createdAt: -1}});
-    },
-    'contacts': function(){
-        return Contacts.find({'listing.userId': Meteor.userId()}, {sort: {createdAt: -1}});
     }
 	});
+
 
 	Template.home.helpers({
 		
@@ -354,48 +262,19 @@ if(Meteor.isClient){
 	    }
 	});
 
+
+	// Get listings that are located within our map bounds. 
+	Meteor.autorun(function () {
+	 Session.set('loading', true);
+	  Meteor.subscribe('listings', function(){
+	   Session.set('loading', false);
+	  }); 
+	});
+
 	Template.listing.events({
 		'click #comment': function(){
 		    Modal.show('commentModal');
-		    Session.set("listingid", this._id);
 		}
-	});
-
-	Contacts.after.insert(function (userId, doc) {
-		if (doc._id !== undefined) {
-		 	toastr.success("Comment sent.");
-		 	Modal.hide('commentModal');
-		}
-	});
-
-	Listings.after.insert(function (userId, doc) {
-		if (doc._id !== undefined) {
-			toastr.success("Listing added.");
-		}
-	});
-
-	Listings.after.update(function (userId, doc) {
-		toastr.success("Listing updated.");
-	});
-
-	Template.update.events({
-		'click #uploadimages': function(){
-		    Modal.show('fileUploader');
-		    Session.set("listingid", this._id);
-		}
-	});
-
-	Template.listing.events({
-		'click #viewprofile': function(){
-		    Modal.show('viewProfile');
-		    Session.set("listingid", this._id);
-		}
-	});
-
-	Template.commentModal.helpers({
-	    listingid: function() {
-	        return Session.get("listingid");
-	    }
 	});
 
 
@@ -416,7 +295,6 @@ if(Meteor.isClient){
     },
 	'click #comment': function(){
 	    Modal.show('commentModal');
-	    Session.set("listingid", this._id);
 	},
   	});
 
@@ -435,12 +313,7 @@ if(Meteor.isServer){
 	  	var geo = new GeoCoder();
 	    var result = geo.geocode(address);
 		return result;
-	  },
-	  deleteAll: function() {
-			Listings.remove({});
-			Contacts.remove({});
-			Images.remove({});
-		}
+	  }
 	});
 
 
@@ -457,26 +330,6 @@ if(Meteor.isServer){
 	   doc.userId = Meteor.user();
 
 	});
-
-	Listings.before.update(function (userId, doc) {
-	   var geo = new GeoCoder();
-	   var result = geo.geocode(doc.address);
-
-	   doc.lat = result[0].latitude;
-	   doc.lng = result[0].longitude;
-
-	   doc.coordinates[0].lon = result[0].longitude;
-	   doc.coordinates[0].lat = result[0].latitude;
-
-	   doc.userId = Meteor.user();
-
-	});
-
-
-	Listings.after.insert(function (userId, doc) {
-		//Router.go('home');
-	});
-
 
 	Contacts.before.insert(function (userId, doc) {
 	   doc.userId = userId;
@@ -500,6 +353,8 @@ if(Meteor.isServer){
 	  return next();
 	});
 
+	//Listings.remove({});
+	//Contacts.remove({});
 
 
 	// Publish those listings within the bounds of the map view.

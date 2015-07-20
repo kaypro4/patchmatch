@@ -19,3 +19,12 @@ aldeed:collection2
 aldeed:geocoder
 cfs:standard-packages
 matb33:collection-hooks
+accounts-ui
+accounts-password
+accounts-google
+dburles:collection-helpers
+email
+peppelg:bootstrap-3-modal
+fortawesome:fontawesome
+cfs:graphicsmagick
+chrismbeckett:toastr
