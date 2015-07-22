@@ -1,10 +1,10 @@
 // basic info
 App.info({
-  name: 'meteor-leaflet-demo',
-  description: 'Meteor Leaflet Demo',
-  author: 'Bevan Hunt',
-  email: 'bevan@bevanhunt.com',
-  website: 'http://bevanhunt.com'
+  name: 'no209',
+  description: 'no209 Listings',
+  author: 'Matt Pope',
+  email: 'matt@clineranch.net',
+  website: 'http://www.clineranch.net'
 });
 
 // CORS for Meteor app
@@ -13,4 +13,6 @@ App.accessRule('meteor.local/*');
 App.accessRule('*.openstreetmap.org/*');
 App.accessRule('*.tile.thunderforest.com/*');
 App.accessRule('*api.tiles.mapbox.com/*');
-
+App.accessRule('*.muscache.com');
+App.accessRule('*.googleapis.com');
+App.accessRule('*.gstatic.com');
