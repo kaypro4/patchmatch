@@ -337,7 +337,7 @@ if(Meteor.isClient){
 	    }
 	  });
 	};
-	
+
 	Listings.helpers({
 	  'photourl': function() {
 	    return Images.findOne(this.photo);
@@ -593,7 +593,7 @@ if(Meteor.isServer){
 	});
 
 	Meteor.startup(function () {
-	  process.env.MAIL_URL = 'smtp://i8flan@gmail.com:RsakIVK-pIx6SGAqS6pW5w@smtp.mandrillapp.com:587/';
+	  process.env.MAIL_URL = mail_url;
 	  Accounts.emailTemplates.from = 'no 209 <matt@clineranch.net>';
 	  Accounts.emailTemplates.siteName = 'no 209';
 	  Accounts.emailTemplates.verifyEmail.subject = function(user) {
