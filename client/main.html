@@ -17,12 +17,12 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span> 
           </button>
-          <a class="navbar-brand" href="/"><img src="/images/logo_50px.png" style="height:100%;" /></a>
+          <a class="navbar-brand" href="{{pathFor route='home'}}"><img src="/images/logo_50px.png" style="height:100%;" /></a>
         </div>
         <div class="collapse navbar-collapse" id="myNavbar">
           <ul class="nav navbar-nav">
             {{#if currentUser}}
-            <li><a href="/mylistings">My Listings</a></li>
+            <li><a href="{{pathFor route='mylistings'}}">My Listings</a></li>
             {{/if}}
           </ul>
           <ul class="nav navbar-nav navbar-right">
@@ -35,8 +35,9 @@
         </div>
       </div>
     </nav>
-  
+
     {{> yield}}
+
 </template>
 
 <template name="mylistings">
@@ -44,7 +45,7 @@
     <h2>Your Listings&nbsp;&nbsp;<a href="/new" style="font-size:65%;"><i class="fa fa-plus"></i> Add Listing</a></h2>
     <ul>
     {{#each results}}
-    <li><a href="listing/{{_id}}" target="_self">{{title}}</a>&nbsp;&nbsp;<a href="update/{{_id}}" target="_self"><i class="fa fa-pencil"></i></a></li>
+    <li><a href="{{pathFor route='listing' _id=_id }}">{{title}}</a>&nbsp;&nbsp;<a href="{{pathFor route='update' _id=_id }}" target="_self"><i class="fa fa-pencil"></i></a></li>
     {{/each}}
     </ul>
     </div>
@@ -60,9 +61,10 @@
         {{else}}
         Log in to send a message
         {{/if}}
+      {{else}}
+        <a href="{{pathFor route='update' _id=_id }}">Edit listing <i class="fa fa-pencil"></i></a>
       {{/unless}}
       </div>
-
       <section class="block" style="clear:both;">
           <div id="myCarousel" class="carousel slide">
               <div class="carousel-inner">
@@ -80,15 +82,36 @@
     <div class="col-md-4 right-side">
       <div class="spacey"></div>
       {{#if isOwner userId}}
-      <h3>Listing Contacts</h3>
-      <ul>
-      {{#each contacts}}
-      <li> - {{comment}} <a href="#" id="viewprofile"><i class="fa fa-reply"></i></a></li>
-      {{/each}}
-      </ul>
+        <h3>Inbox</h3>
+        {{#unless contacts.count}}No messages yet{{/unless}}
+        <ul>
+        {{#each contacts}}
+        <li>{{formatDate createdAt}} - {{contactor.profile}} {{comment}} <a href="#" id="viewprofile"><i class="fa fa-reply"></i></a></li>
+        {{/each}}
+        </ul>
       {{else}}
-      Display an indicator if I have ever contacted this one...
+        {{#if currentUser}}
+          {{#if contacted.count}}<h3>My Sent Messages</h3>{{/if}}
+          <ul>
+          {{#each contacted}}
+          <li>{{formatDate createdAt}} - {{comment}}</li>
+          {{/each}}
+          </ul>
+        {{/if}}
       {{/if}}
+
+    <div class="details">
+    <h3>Details</h3>
+    {{#if verified}}<h3>209 Verified Listing</h3>{{/if}}
+    Type: {{listingType}}<br />
+    Price: {{price}}<br />
+    Power: {{hasPower}}<br />
+    Water: {{hasWater}}<br />
+    SQ Feet: {{sqFeet}}<br />
+    Max Height: {{maxHeight}}<br /><br />
+    <div class="description"><p>{{breaklines description}}</p></div>
+
+    </div>
     </div>
 
 
@@ -96,26 +119,37 @@
 </template>
 
 <template name="home">
+
     <div class="col-md-7 left-side" id="listings">
-    
+      {{#unless results.count}}
+        <h4>We couldn’t find any results that matched your criteria, but tweaking your search may help. Here are some ideas:</h4>
+        <ul>
+        <li>Remove some filters.</li>
+        <li>Expand the area of your search.</li>
+        <li>Search for a city, address, or landmark.</li>
+        </ul>
+      {{/unless}}
       {{#each results}}
         <div class="col-md-6">
         <div class="listing">
-          <a href="listing/{{_id}}">
+          <a href="{{pathFor route='listing' _id=_id }}" target="_self">
             <div class="overlay-price">$ {{price}}/mo</div>
             <img src="{{photourl.url}}" class="img-responsive" style="width:100%;"/>
             <div class="details"><h3 class="listing-title">{{title}}</h3></div>
           </a>
-          {{#if currentUser}}
-          <div class="contact-link"><a href="#" id="comment">Contact <i class="fa fa-envelope"></i></a></div>
-           {{/if}}
+           {{#unless isOwner userId}}
+            {{#if currentUser}}
+            <div class="contact-link"><a href="#" id="comment">Contact <i class="fa fa-envelope"></i></a></div>
+            {{/if}}
+          {{/unless}}
+
         </div>
       </div>
       {{/each}}
 
     </div>
 
-    <div class="col-md-5 right-side">
+    <div class="col-md-5 right-side home">
      <div id="overlay" style="position:absolute; top:70px; right:0px; height:50px; width:75%; z-index: 100">
        <form class="locate-search">
         <input type="text" name="text" placeholder="Find location" style="width:75%;" />
@@ -133,15 +167,23 @@
 <template name="new">
   <div class="spacey"></div>
   <div class="col-md-6">
-    <h1>Add New</h1>
+    <h1>Create Listing</h1>
     {{#autoForm id="insertForm" type="insert" collection="Listings"}}
+    {{> afQuickField name="listingType"}}
     {{> afQuickField name="title"}}
     {{> afQuickField name="address"}}
     {{> afQuickField name="price"}}
+    {{> afQuickField name="hasPower"}}
+    {{> afQuickField name="hasWater"}}
+    {{> afQuickField name="sqFeet"}}
+    {{> afQuickField name="maxHeight"}}
+    {{> afQuickField name="description" rows=6}}
+    {{> afQuickField name="verifyRequested"}}
     {{> afQuickField name="photo"}}
     {{> afQuickField name="coordinates" class="coordinates"}}
     <button type="submit">Submit</button>
     {{/autoForm}}
+    <br /><br />
   </div>
 
 </template>
@@ -150,18 +192,25 @@
 <template name="update">
   <div class="spacey"></div>
   <div class="col-md-6">
-    <h1>Update</h1>
+    <h1>Update Listing</h1>
     <div class="upload-images" style="float:right;"><a href="#" id="uploadimages">Upload more images</a></div>
     <br />
     {{#autoForm id="updateForm" doc=this type="update" collection="Listings"}}
+    {{> afQuickField name="listingType"}}
     {{> afQuickField name="title"}}
     {{> afQuickField name="address"}}
     {{> afQuickField name="price"}}
+    {{> afQuickField name="hasPower"}}
+    {{> afQuickField name="hasWater"}}
+    {{> afQuickField name="sqFeet"}}
+    {{> afQuickField name="maxHeight"}}
+    {{> afQuickField name="description" rows=6}}
+    {{> afQuickField name="verifyRequested"}}
     {{> afQuickField name="photo"}}
     {{> afQuickField name="coordinates" class="coordinates"}}
     <button type="submit">Submit</button>
     {{/autoForm}}
-    
+    <br /><br />
   </div>
 
 </template>

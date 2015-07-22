@@ -46,7 +46,7 @@
     "collapse"             : true,
     "scrollspy"            : false,
     "tab"                  : true,
-    "transition"           : false,
+    "transition"           : true,
 
     "utilities"            : true,
     "responsive-utilities" : true

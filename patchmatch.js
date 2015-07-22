@@ -21,7 +21,6 @@ Images.allow({
 Listings = new Mongo.Collection("listings");
 Photos = new Mongo.Collection("photos");
 Contacts = new Mongo.Collection("contacts");
-MapBounds = new Mongo.Collection(null);
 
 Photos.attachSchema(new SimpleSchema({
   title: {
@@ -61,7 +60,14 @@ Listings.attachSchema(new SimpleSchema({
   title: {
     type: String,
     label: "Title",
-    max: 200
+    max: 200,
+    optional: false
+  },
+  description: {
+    type: String,
+    label: "Description",
+    max: 2000,
+    optional: false
   },
   photo: {
     type: String,
@@ -76,7 +82,8 @@ Listings.attachSchema(new SimpleSchema({
   price: {
     type: Number,
     label: "Price per month",
-    min: 0
+    min: 0,
+    optional: false
   },
   lat: {
     type: String,
@@ -93,7 +100,8 @@ Listings.attachSchema(new SimpleSchema({
   address: {
     type: String,
     label: "Address",
-    max: 200
+    max: 200,
+    optional: false
   },
   userId: {
     type: String,
@@ -105,12 +113,6 @@ Listings.attachSchema(new SimpleSchema({
     type: Date,
     label: "Date created",
     defaultValue: new Date()
-  },
-  summary: {
-    type: String,
-    label: "Brief summary",
-    optional: true,
-    max: 1000
   },
 coordinates: {
     type: [Object],
@@ -127,7 +129,50 @@ coordinates: {
 	decimal: true,
     optional: true,
     defaultValue: 1
-}
+},
+verified: {
+    type: Boolean,
+    label: "Indicates if the listing has been verified by an admin",
+    defaultValue: false
+ },
+ verifyRequested: {
+    type: Boolean,
+    label: "Would you like this listing to be 209 Verified?",
+    defaultValue: false
+ },
+ hasWater: {
+    type: Boolean,
+    label: "Does the parking spot or tiny have drinking water?",
+    defaultValue: false
+ },
+ hasPower: {
+    type: Boolean,
+    label: "Does the parking spot or tiny have power available?",
+    defaultValue: false
+ },
+ sqFeet: {
+    type: Number,
+	decimal: true,
+	label: "Square Feet of the tiny house or parking spot available.",
+    optional: false
+},
+maxHeight: {
+    type: Number,
+	decimal: true,
+	label: "Maximum height of a tiny house the space can accomodate.",
+    optional: true
+},
+ listingType: {
+    type: String,
+    optional: false,
+    allowedValues: ['spot', 'house'],
+    autoform: {
+      options: [
+        {label: "Tiny Parking Spot", value: "spot"},
+        {label: "Tiny House", value: "house"}
+      ]
+    }
+  }
 }));
 
 
@@ -173,7 +218,8 @@ Router.route('new');
 Router.route('clear'); 
 
 Router.route('home', {
-	path: '/'
+	path: '/',
+	waitOn: function() {Meteor.subscribe('listings')}
 });
 
 Router.route('listing', {
@@ -202,17 +248,25 @@ if(Meteor.isClient){
 	Meteor.subscribe('contacts');
 	Meteor.subscribe('listings');
 
-    // on startup run resizing event
 	Meteor.startup(function() {
 	  toastr.options.positionClass = "toast-bottom-right";
+	  //default the map center and bounds, then track them in local storage as the map moves.
+	  Session.setDefaultPersistent("mapCenter", [37.7833, -122.4167]);
+	  //todo - make this real based on actual map bounds
+	  boundObject = { 
+	        southWest: [37.74995081712854, -122.46580123901367],
+	        northEast: [37.78618210598413, -122.36812591552733] 
+		}
+	  Session.setDefaultPersistent("mapBounds", boundObject);
 	});
 	
 	Template.map.rendered = function() {
 	  L.Icon.Default.imagePath = 'packages/bevanhunt_leaflet/images';
 
+	  center = Session.get("mapCenter");
 	  map = L.map('map', {
 	    doubleClickZoom: true
-	  }).setView([37.7833, -122.4167], 13);
+	  }).setView(center, 13);
 
 	  L.tileLayer.provider('MapBox', {id: 'i8flan.jo1h0k21', accessToken: 'pk.eyJ1IjoiaThmbGFuIiwiYSI6ImZPbHhKYncifQ.qXeCay-TLmRzkMGsWCoyQg'}).addTo(map);
 
@@ -220,7 +274,7 @@ if(Meteor.isClient){
 	    position: 'topleft',  // set the location of the control
 	    drawCircle: true,  // controls whether a circle is drawn that shows the uncertainty about the location
 	    follow: false,  // follow the user's location
-	    setView: true, // automatically sets the map view to the user's location, enabled if `follow` is true
+	    setView: false, // automatically sets the map view to the user's location, enabled if `follow` is true
 	    keepCurrentZoomLevel: true, // keep the current map zoom level when displaying the user's location. (if `false`, use maxZoom)
 	    stopFollowingOnDrag: false, // stop following when the map is dragged if `follow` is true (deprecated, see below)
 	    remainActive: false, // if true locate control remains active on click even if the user's location is in view.
@@ -254,9 +308,8 @@ if(Meteor.isClient){
 	  map.on('moveend', function() { 
 	     console.log(map.getBounds());
 
-	     box = map.getBounds();
-
-	     //http://stackoverflow.com/questions/15487551/meteor-mongodb-geospatial-bounds-within
+	     center = map.getCenter();
+	     Session.setPersistent("mapCenter", center);
 
 		 var bounds = map.getBounds()
 		    , boundObject = { 
@@ -264,8 +317,8 @@ if(Meteor.isClient){
 		        northEast: [bounds._northEast.lat, bounds._northEast.lng] 
 		      };
 
-		  if (MapBounds.find().count() < 1) MapBounds.insert(boundObject);
-		  else MapBounds.update({}, boundObject);
+		  Session.setPersistent("mapBounds", boundObject);
+
 	  });
 
 
@@ -278,14 +331,13 @@ if(Meteor.isClient){
 
 		     	var marker = L.marker([listing.lat, listing.lng]).bindPopup(popupContents,popOptions).addTo(map)
 		        .on('click', function(event) {
-		          //Markers.remove({_id: document._id});
 		        });
 
 	    	}  
 	    }
 	  });
 	};
-
+	
 	Listings.helpers({
 	  'photourl': function() {
 	    return Images.findOne(this.photo);
@@ -324,9 +376,11 @@ if(Meteor.isClient){
     	}else{
     		return false
     	}
-	}
+	},
+    'contacted': function(){
+        return Contacts.find({'userId': Meteor.userId(),'listingId': this._id}, {sort: {createdAt: -1}});
+    }
 	});
-
 
 	Template.mylistings.helpers({
     'results': function(){
@@ -338,9 +392,11 @@ if(Meteor.isClient){
 	});
 
 	Template.home.helpers({
-		
+
 	    results: function(){
-		bounds = MapBounds.findOne();
+		//bounds = MapBounds.findOne();
+		bounds = Session.get("mapBounds");
+
 	        return Listings.find({
 				 "lng" : {
 			        "$gt" : bounds.southWest[1],
@@ -351,7 +407,15 @@ if(Meteor.isClient){
 			        "$lt": bounds.northEast[0]
 			      }
 	        }, {sort: {createdAt: -1}});
-	    }
+	    },
+	    'isOwner': function(thisUserId) {
+	    	//move to helpers.js?
+	    	if (thisUserId && (thisUserId._id === Meteor.userId())) {
+	    		return true
+	    	}else{
+	    		return false
+	    	}
+		}
 	});
 
 	Template.listing.events({
@@ -420,6 +484,51 @@ if(Meteor.isClient){
 	},
   	});
 
+	Accounts.ui.config({
+	    requestPermissions: {},
+	    extraSignupFields: [{
+	        fieldName: 'first-name',
+	        fieldLabel: 'First name',
+	        inputType: 'text',
+	        visible: true,
+	        validate: function(value, errorFunction) {
+	          if (!value) {
+	            errorFunction("Please write your first name");
+	            return false;
+	          } else {
+	            return true;
+	          }
+	        }
+	    }, {
+	        fieldName: 'last-name',
+	        fieldLabel: 'Last name',
+	        inputType: 'text',
+	        visible: true,
+	        validate: function(value, errorFunction) {
+	          if (!value) {
+	            errorFunction("Please write your last name");
+	            return false;
+	          } else {
+	            return true;
+	          }
+	        }
+	    }, {
+	        fieldName: 'terms',
+	        fieldLabel: 'I accept the terms and conditions',
+	        inputType: 'checkbox',
+	        visible: true,
+	        saveToProfile: false,
+	        validate: function(value, errorFunction) {
+	            if (value) {
+	                return true;
+	            } else {
+	                errorFunction('You must accept the terms and conditions.');
+	                return false;
+	            }
+	        }
+	    }]
+	});
+
 	
 }
 
@@ -440,6 +549,7 @@ if(Meteor.isServer){
 			Listings.remove({});
 			Contacts.remove({});
 			Images.remove({});
+			Meteor.users.remove({});
 		}
 	});
 
@@ -484,13 +594,13 @@ if(Meteor.isServer){
 
 	Meteor.startup(function () {
 	  process.env.MAIL_URL = 'smtp://i8flan@gmail.com:RsakIVK-pIx6SGAqS6pW5w@smtp.mandrillapp.com:587/';
-	  Accounts.emailTemplates.from = 'Patch Match <matt@clineranch.net>';
-	  Accounts.emailTemplates.siteName = 'Patch Match';
+	  Accounts.emailTemplates.from = 'no 209 <matt@clineranch.net>';
+	  Accounts.emailTemplates.siteName = 'no 209';
 	  Accounts.emailTemplates.verifyEmail.subject = function(user) {
 	    return 'Confirm Your Email Address';
 	  };
 	  Accounts.emailTemplates.verifyEmail.text = function(user, url) {
-	    return 'Click on the following link to verify your email address: ' + url;
+	    return 'Click on the following link to verify your email address and create your account: ' + url;
 	  };
 	});
 
@@ -500,22 +610,18 @@ if(Meteor.isServer){
 	  return next();
 	});
 
+	Accounts.config({sendVerificationEmail: true, forbidClientAccountCreation: false});
 
+	// (server-side) called whenever a login is attempted
+	// Accounts.validateLoginAttempt(function(attempt){
+	//   if (attempt.user && attempt.user.emails && !attempt.user.emails[0].verified ) {
+	//     console.log('email not verified');
 
-	// Publish those listings within the bounds of the map view.
-	// Meteor.publish('listings', function(bounds){
+	//     return false; // the login is aborted
+	//   }
+	//   return true;
+	// }); 
 
-	//  if (bounds && bounds.southWest && bounds.northEast) {
-
-	//   return Listings.find({'coordinates': {'$within' : 
-	//     { '$box' : [bounds.southWest, bounds.northEast] }
-	//   }}, {
-	//     limit: 100
-	//   });
-
-	//  }
-
-	// });
-
-
+	
 }
+

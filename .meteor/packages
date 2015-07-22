@@ -19,7 +19,6 @@ aldeed:collection2
 aldeed:geocoder
 cfs:standard-packages
 matb33:collection-hooks
-accounts-ui
 accounts-password
 accounts-google
 dburles:collection-helpers
@@ -28,3 +27,6 @@ peppelg:bootstrap-3-modal
 fortawesome:fontawesome
 cfs:graphicsmagick
 chrismbeckett:toastr
+momentjs:moment
+u2622:persistent-session
+ian:accounts-ui-bootstrap-3
