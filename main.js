@@ -1,6 +1,37 @@
 Images = new FS.Collection("images", {
   stores: [
-  new FS.Store.GridFS("thumbs", { transformWrite: createThumb }),
+  new FS.Store.GridFS("tiles", {
+        transformWrite: function(fileObj, readStream, writeStream) {
+          //help here:  http://aheckmann.github.io/gm/docs.html
+          // Transform the image into a 10x10px thumbnail
+          gm(readStream, fileObj.name())
+          .resize('840', '450', '!')
+          .gravity('Center')
+          .crop('840', '450')
+          .stream()
+          .pipe(writeStream);
+        }
+      }),
+  new FS.Store.GridFS("thumbs", {
+        transformWrite: function(fileObj, readStream, writeStream) {
+          // Transform the image into a 10x10px thumbnail
+          gm(readStream, fileObj.name())
+          .resize('100', '100', '!')
+          .gravity('Center')
+          .crop('100', '100')
+          .stream()
+          .pipe(writeStream);
+        }
+      }),
+  new FS.Store.GridFS("extras", {
+        transformWrite: function(fileObj, readStream, writeStream) {
+          // Transform the image into a 10x10px thumbnail
+          gm(readStream, fileObj.name())
+          .resize('800', '800')
+          .stream()
+          .pipe(writeStream);
+        }
+      }),
   new FS.Store.GridFS("images", {})
 
   ],
@@ -12,10 +43,7 @@ Images = new FS.Collection("images", {
     }
 });
 
-var createThumb = function(fileObj, readStream, writeStream) {
-  // Transform the image into a 10x10px thumbnail
-  gm(readStream, fileObj.name()).resize('840', '450').stream().pipe(writeStream);
-};
+
 
 Images.allow({
   download: function () {
@@ -77,7 +105,7 @@ Listings.attachSchema(new SimpleSchema({
   },
   photo: {
     type: String,
-    label: "Primary Photo",
+    label: "Primary Photo (landscape orientation is best)",
     autoform: {
       afFieldInput: {
         type: "cfs-file",
@@ -453,7 +481,7 @@ if(Meteor.isClient){
 		    return false;
 		  }
 		  return true;
-		}
+	}
 	});
 
 	Template.mymessages.helpers({
@@ -462,6 +490,17 @@ if(Meteor.isClient){
     },
     'receivedmessages': function(){
         return Contacts.find({'userIdTo': Meteor.userId()}, {sort: {createdAt: -1}});
+    }
+	});
+
+	Template.fileUploader.helpers({
+    'maxImages': function(){
+        imageCount = Photos.find({'listingId': Session.get("listingid")}).count();
+        if (imageCount > 9) {
+        	return true;
+        }else{
+        	return false;
+        }
     }
 	});
 
@@ -559,13 +598,29 @@ if(Meteor.isClient){
     	},
     	'listingid': function() {
 	        return Session.get("listingid");
-	    }
+	    },
+	    'isVerified': function() {
+		userId = Meteor.userId();
+		var user = Meteor.users.findOne({_id: userId, 'emails.0.verified': false});
+   		if (user) {
+		    return false;
+		  }
+		  return true;
+		}
 	});
 
 	Template.commentModal.helpers({
 	    listingid: function() {
 	        return Session.get("listingid");
-	    }
+	    },
+	    'isVerified': function() {
+		userId = Meteor.userId();
+		var user = Meteor.users.findOne({_id: userId, 'emails.0.verified': false});
+   		if (user) {
+		    return false;
+		  }
+		  return true;
+		}
 	});
 
 

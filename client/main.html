@@ -97,16 +97,13 @@
                       <img src="{{photourl.url}}" class="img-responsive" style="width:100%;"/>
                   </div>
               </div>
-              <a class="carousel-control left" href="#myCarousel" data-slide="prev">‹</a>
-              <a class="carousel-control right" href="#myCarousel" data-slide="next">›</a>
-
           </div>
       </section>
       <br /><br />
       <div class="popup-gallery">
       {{#each photos}}
-       <a href="{{photosurl.url}}" title="{{title}}">
-          <img src="{{photosurl.url}}" title="{{title}}"  width="90px">
+       <a href="{{photosurl.url store='extras'}}" title="{{title}}">
+          <img src="{{photosurl.url store='thumbs'}}" title="{{title}}">
        </a>
        {{/each}}
     </div>
@@ -185,7 +182,7 @@
         <div class="listing">
           <a href="{{pathFor route='listing' _id=_id }}">
             <div class="overlay-price">$ {{price}}/mo</div>
-            <img src="{{photourl.url}}" class="img-responsive" style="width:100%;"/>
+            <img src="{{photourl.url store='tiles'}}" class="img-responsive" style="width:100%;"/>
             <div class="details"><h3 class="listing-title">{{title}}</h3></div>
           </a>
            {{#unless isOwner userId}}
@@ -244,7 +241,7 @@
   <div class="spacey"></div>
   <div class="col-md-6">
     <h1>Update Listing</h1>
-    <div class="upload-images" style="float:right;"><a href="#" id="uploadimages"><i class="fa fa-picture-o"></i> Manage additional images</a></div>
+    <div class="upload-images" style="float:right;"><a href="#" id="uploadimages"><i class="fa fa-picture-o"></i> Manage additional images</a> | <a href="{{pathFor route='listing' _id=_id }}"> View Listing</a></div>
     <br />
     {{#autoForm id="updateForm" doc=this type="update" collection="Listings"}}
     {{> afQuickField name="listingType"}}
@@ -288,13 +285,15 @@
                 </div>
 
                 <div class="modal-body">
+                    {{#unless isVerified}}<div class="alert alert-warning" role="alert">Your email is not yet verified so you cannot contact anyone on the site.  <a href="#" id="sendverifyemail">Verify your email</a> now to start in the fun!</div>{{/unless}}
+                    {{#if isVerified}}
                     {{#autoForm id="insertComment" type="insert" collection="Contacts"}}
                     {{> afQuickField name="comment" rows=6}}
                     {{> afQuickField name="listingId" value=listingid}}
                      
                     <button type="submit">Submit</button>
                     {{/autoForm}}
-
+                    {{/if}}
 
                 </div>
 
@@ -316,19 +315,23 @@
 
                 <div class="modal-body">
                     <h3>Upload New</h3>
-                    {{#autoForm id="insertGallery" type="insert" collection="Photos"}}
-                    {{> afQuickField name="title"}}
-                    {{> afQuickField name="photo"}}
-                    {{> afQuickField name="listingId" value=listingid}}
-                     
-                    <button type="submit">Submit</button>
-                    {{/autoForm}}
-                    
+                    {{#if maxImages}}
+                        Oops, you're at the max. Only 10 additional images can be uploaded.
+                    {{else}}
+                      {{#autoForm id="insertGallery" type="insert" collection="Photos"}}
+                      {{> afQuickField name="title"}}
+                      {{> afQuickField name="photo"}}
+                      {{> afQuickField name="listingId" value=listingid}}
+                       
+                      <button type="submit">Submit</button>
+                      {{/autoForm}}
+                    {{/if}}
+
                     <h3>Manage Existing</h3>
                     {{#unless photos.count}}No photos, upload some above.{{/unless}}
                     <ul class="photos">
                     {{#each photos}}
-                    <li><img src="{{photosurl.url}}" width="90px"> {{title}}</li>
+                    <li><img src="{{photosurl.url store='thumbs'}}" width="75px"> {{title}}</li>
                     {{/each}}
                     </ul>
                 </div>
@@ -351,6 +354,9 @@
 
 
                 <div class="modal-body">
+                  {{#unless isVerified}}<div class="alert alert-warning" role="alert">Your email is not yet verified so you cannot contact anyone on the site.  <a href="#" id="sendverifyemail">Verify your email</a> now to start in the fun!</div>{{/unless}}
+                  
+                  {{#if isVerified}}
                   <h3>Reply to: {{contacts.profile.firstname}} {{contacts.profile.lastname}}</h3>
                   <br />
       
@@ -362,7 +368,7 @@
                      
                     <button type="submit">Submit</button>
                     {{/autoForm}}
-
+                  {{/if}}
 
                 </div>
 
