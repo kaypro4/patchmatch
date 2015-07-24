@@ -1,7 +1,7 @@
 {
   "modules" : {
     "normalize"            : true,
-    "print"                : false,
+    "print"                : true,
     "glyphicons"           : true,
 
     "scaffolding"          : true,
@@ -12,20 +12,20 @@
     "forms"                : true,
     "buttons"              : true,
 
-    "component-animations" : false,
+    "component-animations" : true,
     "dropdowns"            : true,
     "button-groups"        : true,
     "input-groups"         : true,
     "navs"                 : true,
     "navbar"               : true,
     "breadcrumbs"          : true,
-    "pagination"           : false,
-    "pager"                : false,
+    "pagination"           : true,
+    "pager"                : true,
     "labels"               : false,
 
     "badges"               : false,
     "jumbotron"            : true,
-    "thumbnails"           : false,
+    "thumbnails"           : true,
     "alerts"               : true,
     "progress-bars"        : false,
     "media"                : true,

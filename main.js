@@ -3,7 +3,13 @@ Images = new FS.Collection("images", {
   new FS.Store.GridFS("thumbs", { transformWrite: createThumb }),
   new FS.Store.GridFS("images", {})
 
-  ]
+  ],
+    filter: {
+      allow: {
+        contentTypes: ['image/*'],
+        extensions: ['png', 'jpg', 'jpeg', 'gif']
+      }
+    }
 });
 
 var createThumb = function(fileObj, readStream, writeStream) {
@@ -29,15 +35,15 @@ Photos.attachSchema(new SimpleSchema({
     max: 200
   },
   photo: {
-    type: [String],
-    label: "Photos",
+    type: String,
+    label: "Photo",
     autoform: {
       afFieldInput: {
         type: "cfs-file",
         collection: "images"
       }
     },
-    optional: true
+    optional: false
   },
   listingId: {
     type: String,
@@ -142,12 +148,12 @@ verified: {
  },
  hasWater: {
     type: Boolean,
-    label: "Does the parking spot or tiny have drinking water?",
+    label: "Drinking water available",
     defaultValue: false
  },
  hasPower: {
     type: Boolean,
-    label: "Does the parking spot or tiny have power available?",
+    label: "Power is available",
     defaultValue: false
  },
  sqFeet: {
@@ -202,6 +208,21 @@ Contacts.attachSchema(new SimpleSchema({
     max: 200,
     optional: true
   },
+  userIdTo: {
+    type: String,
+    label: "UserId to",
+    defaultValue: "NA",
+    max: 200,
+    optional: true,
+    autoform: {
+      afFieldInput: {
+        type: "hidden"
+      },
+      afFormGroup: {
+	    label: false
+	  }
+    }
+  },
   createdAt: {
     type: Date,
     label: "Date created",
@@ -225,7 +246,11 @@ Router.route('home', {
 Router.route('listing', {
 	path: '/listing/:_id',
 	data: function () {return Listings.findOne({_id: this.params._id})},
-	template: 'listing'
+	template: 'listing',
+	onBeforeAction: function () {                                                                             
+       Session.set('listingid', this.params._id); 
+       this.next();                                                                
+    }
 });
 
 Router.route('update', {
@@ -240,13 +265,20 @@ Router.route('mylistings', {
 	template: 'mylistings'
 });
 
+Router.route('mymessages', {
+	path: '/mymessages',
+	template: 'mymessages'
+});
+
 var map = null;
 
 if(Meteor.isClient){
 
 	Meteor.subscribe('images');
 	Meteor.subscribe('contacts');
-	Meteor.subscribe('listings');
+	var handle = Meteor.subscribeWithPagination('listings', 4);
+	Meteor.subscribe("userData");
+	Meteor.subscribe("photos");
 
 	Meteor.startup(function() {
 	  toastr.options.positionClass = "toast-bottom-right";
@@ -327,7 +359,7 @@ if(Meteor.isClient){
 	    added: function (listing) {
 	    	if (listing.lat != null) {
 		    	var popOptions = {'minWidth': '200','className' : 'custom'};
-		    	var popupContents = '<a href="listing/' + listing._id + '" target="_blank"><!--<img src="' + listing.photo + '" class="img-responsive" style="width:100%;"/>--><div class="details"><h3 class="listing-title">' + listing.title + '</h3></div></a>';
+		    	var popupContents = '<a href="listing/' + listing._id + '"><!--<img src="' + listing.photo + '" class="img-responsive" style="width:100%;"/>--><div class="details"><h3 class="listing-title">' + listing.title + '</h3></div></a>';
 
 		     	var marker = L.marker([listing.lat, listing.lng]).bindPopup(popupContents,popOptions).addTo(map)
 		        .on('click', function(event) {
@@ -344,30 +376,28 @@ if(Meteor.isClient){
 	  }
 	});
 
+	Photos.helpers({
+	  'photosurl': function() {
+	    return Images.findOne(this.photo);
+	  }
+	});
+
 	Contacts.helpers({
 	  'listing': function() {
 	    return Listings.findOne(this.listingId);
 	  },
 	  'contactor': function() {
-	    return Meteor.users.findOne(this.userId);
+	    return Meteor.users.findOne({_id: this.userId});
+	  },
+	  'contactTo': function() {
+	    return Meteor.users.findOne({_id: this.userIdTo});
 	  }
 	});
 
 
-	Template.clear.helpers({
-	'clear': function(){
-        Meteor.call('deleteAll');
-    }
-	});
-
-	Template.listing.isOwner = function() {
-	    //return this.userId === Meteor.userId();
-	};
-
-
 	Template.listing.helpers({
-    'contacts': function(){
-        return Contacts.find({'listingId': this._id}, {sort: {createdAt: -1}});
+   	'contacts': function(){
+        return Contacts.find({'listingId': this._id,'userId': {$ne: Meteor.userId()}}, {sort: {createdAt: -1}});
     },
     'isOwner': function(thisUserId) {
 
@@ -379,8 +409,35 @@ if(Meteor.isClient){
 	},
     'contacted': function(){
         return Contacts.find({'userId': Meteor.userId(),'listingId': this._id}, {sort: {createdAt: -1}});
-    }
+    },
+    'responses': function(){
+        return Contacts.find({'userIdTo': Meteor.userId(),'listingId': this._id}, {sort: {createdAt: -1}});
+    },
+    'photos': function() {
+    	return Photos.find({'listingId': this._id});
+  	}
 	});
+
+	Template.listing.rendered = function() {
+	      $('.popup-gallery').magnificPopup({
+	        delegate: 'a',
+	        type: 'image',
+	        tLoading: 'Loading image #%curr%...',
+	        mainClass: 'mfp-img-mobile',
+	        gallery: {
+	          enabled: true,
+	          navigateByImgClick: true,
+	          preload: [0,1] // Will preload 0 - before current, and 1 after the current image
+	        },
+	        image: {
+	          tError: '<a href="%url%">The image #%curr%</a> could not be loaded.',
+	          titleSrc: function(item) {
+	            return item.el.attr('title');
+	          }
+	        }
+	      });
+
+	};
 
 	Template.mylistings.helpers({
     'results': function(){
@@ -388,13 +445,30 @@ if(Meteor.isClient){
     },
     'contacts': function(){
         return Contacts.find({'listing.userId': Meteor.userId()}, {sort: {createdAt: -1}});
+    },
+    'isVerified': function() {
+		userId = Meteor.userId();
+		var user = Meteor.users.findOne({_id: userId, 'emails.0.verified': false});
+   		if (user) {
+		    return false;
+		  }
+		  return true;
+		}
+	});
+
+	Template.mymessages.helpers({
+    'sentmessages': function(){
+        return Contacts.find({'userId': Meteor.userId()}, {sort: {createdAt: -1}});
+    },
+    'receivedmessages': function(){
+        return Contacts.find({'userIdTo': Meteor.userId()}, {sort: {createdAt: -1}});
     }
 	});
 
 	Template.home.helpers({
 
 	    results: function(){
-		//bounds = MapBounds.findOne();
+
 		bounds = Session.get("mapBounds");
 
 	        return Listings.find({
@@ -449,11 +523,43 @@ if(Meteor.isClient){
 		}
 	});
 
-	Template.listing.events({
-		'click #viewprofile': function(){
-		    Modal.show('viewProfile');
-		    Session.set("listingid", this._id);
+	Template.main.events({
+		'click #sendverifyemail': function(){
+		    Meteor.call('sendVerificationEmail');
+		    toastr.success("Verification sent.");
 		}
+	});
+
+	Template.listing.events({
+		'click #contactreply': function(event, template){
+		    Modal.show('contactReply');
+		    Session.set("contactid", this._id);
+		    Session.set("contactorid", this.userId);
+		}
+	});
+
+	Template.fileUploader.helpers({
+    	'listingid': function() {
+	        return Session.get("listingid");
+	    },
+	    'photos': function() {
+	    return Photos.find({'listingId': Session.get("listingid")});
+	  	}
+	});
+
+	Template.contactReply.helpers({
+	    contactid: function() {
+	        return Session.get("contactid");
+	    },
+	    contactorid: function() {
+	        return Session.get("contactorid");
+	    },
+	    'contacts': function(){
+        return Meteor.users.findOne(Session.get("contactorid"));
+    	},
+    	'listingid': function() {
+	        return Session.get("listingid");
+	    }
 	});
 
 	Template.commentModal.helpers({
@@ -487,7 +593,7 @@ if(Meteor.isClient){
 	Accounts.ui.config({
 	    requestPermissions: {},
 	    extraSignupFields: [{
-	        fieldName: 'first-name',
+	        fieldName: 'firstname',
 	        fieldLabel: 'First name',
 	        inputType: 'text',
 	        visible: true,
@@ -500,7 +606,7 @@ if(Meteor.isClient){
 	          }
 	        }
 	    }, {
-	        fieldName: 'last-name',
+	        fieldName: 'lastname',
 	        fieldLabel: 'Last name',
 	        inputType: 'text',
 	        visible: true,
@@ -529,27 +635,94 @@ if(Meteor.isClient){
 	    }]
 	});
 
+	Listings.after.insert(function (userId, doc) {
+		Router.go('listing', {_id: doc._id})
+	});
+
+	Listings.after.update(function (userId, doc) {
+		Router.go('listing', {_id: doc._id})
+	});
+
+	Template.clear.helpers({
+	'clear': function(){
+        Meteor.call('deleteAll');
+    }
+	});
+
+	Contacts.before.insert(function (userId, doc) {
+		//send an email to alert contacted of new message.
+	   if (doc.userIdTo) {
+	   		//get the "to" user id from the form since it's a reply
+	   		toUserId = doc.userIdTo;
+	   	}else{
+	   		//get the "to" from the listing since this isn't a reply
+	   		listingid = doc.listingId;
+	   		userfromlisting = Listings.findOne({_id: listingid},{ fields: { 'userId': 1 } });
+	   		toUserId = userfromlisting.userId._id;
+	   }
+	   
+	   doc.userIdTo = toUserId;
+
+		toEmail = Meteor.users.findOne({_id: toUserId},{ fields: { 'emails': 1 } });
+	   	toEmail = toEmail.emails[0].address;
+
+	   	message = "You have received a message on a listing.  View it here: " + base_url + "/listing/" + doc.listingId; 
+
+		Meteor.call('sendEmail',
+		            toEmail,
+		            'matt@clineranch.net',
+		            'New message alert from no 209',
+		            message);
+	});
 	
 }
 
 if(Meteor.isServer){
 
+	Meteor.publish("photos", function(){ return Photos.find(); });
 	Meteor.publish("images", function(){ return Images.find(); });
 	Meteor.publish("contacts", function(){ return Contacts.find(); });
-	Meteor.publish("listings", function(){ return Listings.find(); });
-
+	Meteor.publish("listings", function(limit){ return Listings.find({}, {limit: limit}); });
+	Meteor.publish("userData", function () { 
+		return Meteor.users.find({}, { fields: { profile: 1, emails: 1} }); 
+	});
+	
 
 	Meteor.methods({
-	  getGeocodedResults: function (address) {
-	  	var geo = new GeoCoder();
-	    var result = geo.geocode(address);
-		return result;
-	  },
-	  deleteAll: function() {
+		getGeocodedResults: function (address) {
+			var geo = new GeoCoder();
+			var result = geo.geocode(address);
+			return result;
+		},
+		deleteAll: function() {
 			Listings.remove({});
 			Contacts.remove({});
 			Images.remove({});
+			Photos.remove({});
 			Meteor.users.remove({});
+		},
+		sendEmail: function (to, from, subject, text) {
+			check([to, from, subject, text], [String]);
+
+			// Let other method calls from the same client start running,
+			// without waiting for the email sending to complete.
+			this.unblock();
+
+			Email.send({
+			  to: to,
+			  from: from,
+			  subject: subject,
+			  text: text
+			});
+		},
+		'sendVerificationEmail': function () {
+			var userId = this.userId;
+			if (!userId)
+			  throw new Meteor.Error(402, 'no user login');
+
+			var user = Meteor.users.findOne({_id: userId, 'emails.0.verified': false});
+			if (user)
+			  Accounts.sendVerificationEmail(userId, user.emails[0].address);
 		}
 	});
 
@@ -583,17 +756,13 @@ if(Meteor.isServer){
 	});
 
 
-	Listings.after.insert(function (userId, doc) {
-		//Router.go('home');
-	});
-
-
 	Contacts.before.insert(function (userId, doc) {
 	   doc.userId = userId;
 	});
 
 	Meteor.startup(function () {
-	  process.env.MAIL_URL = mail_url;
+	  //set in config.js
+	  process.env.MAIL_URL = mail_url;  
 	  Accounts.emailTemplates.from = 'no 209 <matt@clineranch.net>';
 	  Accounts.emailTemplates.siteName = 'no 209';
 	  Accounts.emailTemplates.verifyEmail.subject = function(user) {
@@ -612,16 +781,13 @@ if(Meteor.isServer){
 
 	Accounts.config({sendVerificationEmail: true, forbidClientAccountCreation: false});
 
-	// (server-side) called whenever a login is attempted
-	// Accounts.validateLoginAttempt(function(attempt){
-	//   if (attempt.user && attempt.user.emails && !attempt.user.emails[0].verified ) {
-	//     console.log('email not verified');
+	Meteor.users.deny({
+	  update: function() {
+	    return true;
+	  }
+	});
 
-	//     return false; // the login is aborted
-	//   }
-	//   return true;
-	// }); 
 
-	
 }
+
 

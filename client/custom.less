@@ -5,7 +5,7 @@ html, body, .right-side.home, #map {
 }
 
 
-#map{width:100%;position:relative;height: 100% !important;}
+#map{width:100%;position:relative;}
 
 
 body,.navbar-brand,.navbar-nav{
@@ -17,8 +17,25 @@ ul{
   padding-left: 18px;
 }
 
-.navbar-brand{
-	color: #FFA500 !important;
+ul.photos{
+  list-style-type: none;
+  padding-left: 0px;
+  li{
+    font-weight: bold;
+  }
+}
+
+.spacey {
+  padding-top: 60px;
+}
+
+.left-side{
+  padding-top: 30px;
+  margin-top: 50px;
+}
+
+.right-side.home{
+  padding-top: 50px;
 }
 
 .listing{
@@ -49,13 +66,9 @@ h3.listing-title{
 	color: #fff;
 }
 
-.left-side,
-.spacey{
-  padding-top: 100px !important;
-}
-
-.right-side{
-  padding-top: 60px !important;
+.navbar{
+  margin-bottom: 0px;
+  padding-bottom: 0px;
 }
 
 .carousel .item {
@@ -93,9 +106,12 @@ form input[type="text"], form input[type="number"] {
   display: none;
 }
 
-#login-buttons{
-  padding-right: 20px;
-  padding-top: 20px;
+#login-dropdown-list{
+  padding-right: 5px;
+  padding-top: 10px;
+  .login-dropdown-list,.dropdown-toggle {
+    color: white;
+  }
 }
 
 #listings{
@@ -125,9 +141,8 @@ form input[type="text"], form input[type="number"] {
   font-weight: bold;
   font-size: 18px;
   padding: 4px;
-  height: 60px;
 }
 
-.navbar-nav {
-  height: 60px;
+.right-side.listing{
+  padding-top: 70px;
 }
