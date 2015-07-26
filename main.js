@@ -1,6 +1,6 @@
 Images = new FS.Collection("images", {
   stores: [
-  new FS.Store.GridFS("tiles", {
+  new FS.Store.FileSystem("tiles", {
         transformWrite: function(fileObj, readStream, writeStream) {
           //help here:  http://aheckmann.github.io/gm/docs.html
           // Transform the image into a 10x10px thumbnail
@@ -12,7 +12,7 @@ Images = new FS.Collection("images", {
           .pipe(writeStream);
         }
       }),
-  new FS.Store.GridFS("thumbs", {
+  new FS.Store.FileSystem("thumbs", {
         transformWrite: function(fileObj, readStream, writeStream) {
           // Transform the image into a 10x10px thumbnail
           gm(readStream, fileObj.name())
@@ -23,7 +23,7 @@ Images = new FS.Collection("images", {
           .pipe(writeStream);
         }
       }),
-  new FS.Store.GridFS("extras", {
+  new FS.Store.FileSystem("extras", {
         transformWrite: function(fileObj, readStream, writeStream) {
           // Transform the image into a 10x10px thumbnail
           gm(readStream, fileObj.name())
@@ -32,7 +32,7 @@ Images = new FS.Collection("images", {
           .pipe(writeStream);
         }
       }),
-  new FS.Store.GridFS("images", {})
+  new FS.Store.FileSystem("images", {})
 
   ],
     filter: {
@@ -44,7 +44,7 @@ Images = new FS.Collection("images", {
 });
 
 
-
+//TODO - add more of this and turn off insecure.
 Images.allow({
   download: function () {
     return true;
@@ -52,9 +52,15 @@ Images.allow({
   fetch: null
 });
 
+
 Listings = new Mongo.Collection("listings");
 Photos = new Mongo.Collection("photos");
 Contacts = new Mongo.Collection("contacts");
+
+
+
+//COLLECTION SCHEMAS
+//********************************************************************************************************
 
 Photos.attachSchema(new SimpleSchema({
   title: {
@@ -146,7 +152,7 @@ Listings.attachSchema(new SimpleSchema({
   createdAt: {
     type: Date,
     label: "Date created",
-    defaultValue: new Date()
+    optional: true
   },
 coordinates: {
     type: [Object],
@@ -254,17 +260,22 @@ Contacts.attachSchema(new SimpleSchema({
   createdAt: {
     type: Date,
     label: "Date created",
-    defaultValue: new Date()
+    optional: true
   }
 }));
+
+
+//ROUTES
+//********************************************************************************************************
+
 
 Router.configure({
     layoutTemplate: 'main'
 });
 
-Router.route('about'); 
 Router.route('new');  
 Router.route('clear'); 
+Router.route('about'); 
 
 Router.route('home', {
 	path: '/',
@@ -287,7 +298,6 @@ Router.route('update', {
 	template: 'update'
 });
 
-
 Router.route('mylistings', {
 	path: '/mylistings',
 	template: 'mylistings'
@@ -298,15 +308,21 @@ Router.route('mymessages', {
 	template: 'mymessages'
 });
 
+
 var map = null;
 
 if(Meteor.isClient){
 
 	Meteor.subscribe('images');
 	Meteor.subscribe('contacts');
-	var handle = Meteor.subscribeWithPagination('listings', 4);
 	Meteor.subscribe("userData");
 	Meteor.subscribe("photos");
+
+	//TODO - is this doing anything?  Trying to get listings to update when route loads based on map extents...
+	Tracker.autorun(function () {
+	    var handle = Meteor.subscribeWithPagination('listings', 4);
+	});
+
 
 	Meteor.startup(function() {
 	  toastr.options.positionClass = "toast-bottom-right";
@@ -318,6 +334,12 @@ if(Meteor.isClient){
 	        northEast: [37.78618210598413, -122.36812591552733] 
 		}
 	  Session.setDefaultPersistent("mapBounds", boundObject);
+	  Session.setDefaultPersistent("listingtype", ["spot","house"]);
+	  Session.setDefaultPersistent("verified", false);
+
+	   // slider starts at 20 and 80
+  	  Session.setDefaultPersistent("slider", [500, 2000]);
+
 	});
 	
 	Template.map.rendered = function() {
@@ -329,41 +351,6 @@ if(Meteor.isClient){
 	  }).setView(center, 13);
 
 	  L.tileLayer.provider('MapBox', {id: 'i8flan.jo1h0k21', accessToken: 'pk.eyJ1IjoiaThmbGFuIiwiYSI6ImZPbHhKYncifQ.qXeCay-TLmRzkMGsWCoyQg'}).addTo(map);
-
-	  var lc = L.control.locate({
-	    position: 'topleft',  // set the location of the control
-	    drawCircle: true,  // controls whether a circle is drawn that shows the uncertainty about the location
-	    follow: false,  // follow the user's location
-	    setView: false, // automatically sets the map view to the user's location, enabled if `follow` is true
-	    keepCurrentZoomLevel: true, // keep the current map zoom level when displaying the user's location. (if `false`, use maxZoom)
-	    stopFollowingOnDrag: false, // stop following when the map is dragged if `follow` is true (deprecated, see below)
-	    remainActive: false, // if true locate control remains active on click even if the user's location is in view.
-	    markerClass: L.circleMarker, // L.circleMarker or L.marker
-	    circleStyle: {},  // change the style of the circle around the user's location
-	    markerStyle: {},
-	    followCircleStyle: {},  // set difference for the style of the circle around the user's location while following
-	    followMarkerStyle: {},
-	    icon: 'fa fa-map-marker',  // class for icon, fa-location-arrow or fa-map-marker
-	    iconLoading: 'fa fa-spinner fa-spin',  // class for loading icon
-	    circlePadding: [0, 0], // padding around accuracy circle, value is passed to setBounds
-	    metric: true,  // use metric or imperial units
-	    onLocationError: function(err) {alert(err.message)},  // define an error callback function
-	    onLocationOutsideMapBounds:  function(context) { // called when outside map boundaries
-	            alert(context.options.strings.outsideMapBoundsMsg);
-	    },
-	    showPopup: true, // display a popup when the user click on the inner marker
-	    strings: {
-	        title: "Locate me",  // title of the locate control
-	        metersUnit: "meters", // string for metric units
-	        feetUnit: "feet", // string for imperial units
-	        popup: "You are within {distance} {unit} from this point",  // text to appear if user clicks on circle
-	        outsideMapBoundsMsg: "You seem located outside the boundaries of the map" // default message for onLocationOutsideMapBounds
-	    },
-	    locateOptions: {}  // define location options e.g enableHighAccuracy: true or maxZoom: 10
-	  }).addTo(map);
-
-	  lc.start();
-
 
 	  map.on('moveend', function() { 
 	     console.log(map.getBounds());
@@ -381,7 +368,6 @@ if(Meteor.isClient){
 
 	  });
 
-
 	  var query = Listings.find();
 	  query.observe({
 	    added: function (listing) {
@@ -397,6 +383,10 @@ if(Meteor.isClient){
 	    }
 	  });
 	};
+
+
+	//COLLECTION HELPERS
+	//********************************************************************************************************
 
 	Listings.helpers({
 	  'photourl': function() {
@@ -423,6 +413,138 @@ if(Meteor.isClient){
 	});
 
 
+
+	//TEMPLATE RENDERED
+	//********************************************************************************************************
+
+	Template.listing.rendered = function() {
+      $('.popup-gallery').magnificPopup({
+        delegate: 'a',
+        type: 'image',
+        tLoading: 'Loading image #%curr%...',
+        mainClass: 'mfp-img-mobile',
+        gallery: {
+          enabled: true,
+          navigateByImgClick: true,
+          preload: [0,1] // Will preload 0 - before current, and 1 after the current image
+        },
+        image: {
+          tError: '<a href="%url%">The image #%curr%</a> could not be loaded.',
+          titleSrc: function(item) {
+            return item.el.attr('title');
+          }
+        }
+      });
+
+	};
+
+	Template.home.rendered = function() {
+		//find the selected listing type from the session variable and set it to that
+		var aTypeSelected = Session.get("listingtype");
+		var sTypeSelected = aTypeSelected.join(" ");
+		$("#listingtype").val(sTypeSelected);
+
+		var bVerified = Session.get("verified");
+		$("#verified").attr('checked', bVerified);
+
+		localslider = Session.get("slider");
+		$('#slider-low').html("$" + Math.round(localslider[0]));
+	    $('#slider-high').html("$" + Math.round(localslider[1]));
+
+		//set up the price slider. 
+		//TODO set the max amount from the max listing price dynamically.
+		this.$("#slider").noUiSlider({
+	      start: Session.get("slider"),
+	      connect: true,
+	      range: {
+	        'min': 0,
+	        'max': 3000
+	      }
+	    }).on('slide', function (ev, val) {
+	      // set real values on 'slide' event
+	      Session.setPersistent('slider', val);
+	      $('#slider-low').html("$" + Math.round(val[0]));
+	      $('#slider-high').html("$" + Math.round(val[1]));
+	    }).on('change', function (ev, val) {
+	      // round off values on 'change' event
+	      Session.setPersistent('slider', [Math.round(val[0]), Math.round(val[1])]);
+	      $('#slider-low').html("$" + Math.round(val[0]));
+	      $('#slider-high').html("$" + Math.round(val[1]));
+	    });
+
+	};
+
+
+
+	//TEMPLATE EVENTS
+	//********************************************************************************************************
+
+	Template.listing.events({
+		'click #comment': function(){
+		    Modal.show('commentModal');
+		    Session.set("listingid", this._id);
+		},
+		'click #contactreply': function(event, template){
+		    Modal.show('contactReply');
+		    Session.set("contactid", this._id);
+		    Session.set("contactorid", this.userId);
+		}
+	});
+
+
+	Template.update.events({
+		'click #uploadimages': function(){
+		    Modal.show('fileUploader');
+		    Session.set("listingid", this._id);
+		}
+	});
+
+	Template.main.events({
+		'click #sendverifyemail': function(){
+		    Meteor.call('sendVerificationEmail');
+		    toastr.success("Verification sent.");
+		}
+	});
+
+
+	Template.home.events({
+    "submit .locate-search": function (event) {
+      event.preventDefault();
+      var text = event.target.text.value;
+
+	  Meteor.call('getGeocodedResults',text,function(err, response) {
+		
+		lat = response[0].latitude;
+		lng = response[0].longitude;
+
+		map.panTo(new L.LatLng(lat, lng));
+	  });
+
+      event.target.text.value = "";
+    },
+	'click #comment': function(){
+	    Modal.show('commentModal');
+	    Session.set("listingid", this._id);
+	},
+	"change #listingtype": function(evt) {
+		var newValue = $(evt.target).val();
+		//convert to an array
+		var newArray = newValue.split(" ");
+		//store in the session variable so we can check when the template renders
+		Session.setPersistent("listingtype", newArray);
+	 },
+	"change #verified": function(evt) {
+		var setValue = $(evt.target).is(':checked');
+		//store in the session variable so we can check when the template renders
+		Session.setPersistent("verified", setValue);
+	 }
+  	});
+
+
+	//TEMPLATE HELPERS
+	//********************************************************************************************************
+
+
 	Template.listing.helpers({
    	'contacts': function(){
         return Contacts.find({'listingId': this._id,'userId': {$ne: Meteor.userId()}}, {sort: {createdAt: -1}});
@@ -445,27 +567,6 @@ if(Meteor.isClient){
     	return Photos.find({'listingId': this._id});
   	}
 	});
-
-	Template.listing.rendered = function() {
-	      $('.popup-gallery').magnificPopup({
-	        delegate: 'a',
-	        type: 'image',
-	        tLoading: 'Loading image #%curr%...',
-	        mainClass: 'mfp-img-mobile',
-	        gallery: {
-	          enabled: true,
-	          navigateByImgClick: true,
-	          preload: [0,1] // Will preload 0 - before current, and 1 after the current image
-	        },
-	        image: {
-	          tError: '<a href="%url%">The image #%curr%</a> could not be loaded.',
-	          titleSrc: function(item) {
-	            return item.el.attr('title');
-	          }
-	        }
-	      });
-
-	};
 
 	Template.mylistings.helpers({
     'results': function(){
@@ -501,25 +602,45 @@ if(Meteor.isClient){
         }else{
         	return false;
         }
-    }
+    },
+    'listingid': function() {
+        return Session.get("listingid");
+    },
+    'photos': function() {
+    	return Photos.find({'listingId': Session.get("listingid")});
+  	}
 	});
 
 	Template.home.helpers({
-
 	    results: function(){
-
 		bounds = Session.get("mapBounds");
 
-	        return Listings.find({
-				 "lng" : {
-			        "$gt" : bounds.southWest[1],
-			        "$lt":  bounds.northEast[1]  
-			      },
-			      "lat": {
-			        "$gt" : bounds.southWest[0],
-			        "$lt": bounds.northEast[0]
-			      }
-	        }, {sort: {createdAt: -1}});
+		listingtype = Session.get("listingtype");
+		verified = Session.get("verified");
+
+		localslider = Session.get("slider");
+		lowEnd = Math.round(localslider[0]);
+	    highEnd = Math.round(localslider[1]);
+
+		//build the query dynamically so we can use conditionals to append criteria or not
+		var query = {"lng" : {
+				        "$gt" : bounds.southWest[1],
+				        "$lt":  bounds.northEast[1]  
+				      },
+				      "lat": {
+				        "$gt" : bounds.southWest[0],
+				        "$lt": bounds.northEast[0]
+				      }
+			        , 'listingType': {$in : listingtype}
+			        , 'price' : { $gt :  lowEnd, $lt : highEnd}
+		    		}
+
+				if (verified === true) {
+					query.verifyRequested = true;
+				}
+
+		return Listings.find(query, {sort: {createdAt: -1}});
+
 	    },
 	    'isOwner': function(thisUserId) {
 	    	//move to helpers.js?
@@ -528,63 +649,14 @@ if(Meteor.isClient){
 	    	}else{
 	    		return false
 	    	}
+		},
+		'highestListing': function() {
+			//TODO - make this work and pass the value to the high end of the price slider
+	    	//var getHighest = Listings.findOne({}, {sort: {'price': -1}},{ fields: { 'price': 1 } });
+	    	//console.log(getHighest.price);
 		}
 	});
 
-	Template.listing.events({
-		'click #comment': function(){
-		    Modal.show('commentModal');
-		    Session.set("listingid", this._id);
-		}
-	});
-
-	Contacts.after.insert(function (userId, doc) {
-		if (doc._id !== undefined) {
-		 	toastr.success("Comment sent.");
-		 	Modal.hide('commentModal');
-		}
-	});
-
-	Listings.after.insert(function (userId, doc) {
-		if (doc._id !== undefined) {
-			toastr.success("Listing added.");
-		}
-	});
-
-	Listings.after.update(function (userId, doc) {
-		toastr.success("Listing updated.");
-	});
-
-	Template.update.events({
-		'click #uploadimages': function(){
-		    Modal.show('fileUploader');
-		    Session.set("listingid", this._id);
-		}
-	});
-
-	Template.main.events({
-		'click #sendverifyemail': function(){
-		    Meteor.call('sendVerificationEmail');
-		    toastr.success("Verification sent.");
-		}
-	});
-
-	Template.listing.events({
-		'click #contactreply': function(event, template){
-		    Modal.show('contactReply');
-		    Session.set("contactid", this._id);
-		    Session.set("contactorid", this.userId);
-		}
-	});
-
-	Template.fileUploader.helpers({
-    	'listingid': function() {
-	        return Session.get("listingid");
-	    },
-	    'photos': function() {
-	    return Photos.find({'listingId': Session.get("listingid")});
-	  	}
-	});
 
 	Template.contactReply.helpers({
 	    contactid: function() {
@@ -623,28 +695,66 @@ if(Meteor.isClient){
 		}
 	});
 
+	//REMOVE for prod
+	Template.clear.helpers({
+	'clear': function(){
+        Meteor.call('deleteAll');
+    }
+	});
 
-	Template.home.events({
-    "submit .locate-search": function (event) {
-      event.preventDefault();
-      var text = event.target.text.value;
 
-	  Meteor.call('getGeocodedResults',text,function(err, response) {
-		
-		lat = response[0].latitude;
-		lng = response[0].longitude;
+	//COLLECTION ACTIONS
+	//********************************************************************************************************
 
-		map.panTo(new L.LatLng(lat, lng));
-	  });
+	Contacts.after.insert(function (userId, doc) {
+		if (doc._id !== undefined) {
+		 	toastr.success("Comment sent.");
+		 	Modal.hide('commentModal');
+		}
+	});
 
-      event.target.text.value = "";
-    },
-	'click #comment': function(){
-	    Modal.show('commentModal');
-	    Session.set("listingid", this._id);
-	},
-  	});
+	Listings.after.insert(function (userId, doc) {
+		if (doc._id !== undefined) {
+			toastr.success("Listing added.");
+			Router.go('listing', {_id: doc._id});
+		}
+	});
 
+	Listings.after.update(function (userId, doc) {
+		Router.go('listing', {_id: doc._id});
+		toastr.success("Listing updated.");
+	});
+
+	Contacts.before.insert(function (userId, doc) {
+		//send an email to alert contacted of new message.
+	   if (doc.userIdTo) {
+	   		//get the "to" user id from the form since it's a reply
+	   		toUserId = doc.userIdTo;
+	   	}else{
+	   		//get the "to" from the listing since this isn't a reply
+	   		listingid = doc.listingId;
+	   		userfromlisting = Listings.findOne({_id: listingid},{ fields: { 'userId': 1 } });
+	   		toUserId = userfromlisting.userId._id;
+	   }
+	   
+		doc.userIdTo = toUserId;
+
+		toEmail = Meteor.users.findOne({_id: toUserId},{ fields: { 'emails': 1 } });
+			toEmail = toEmail.emails[0].address;
+
+			message = "You have received a message on a listing."
+					+ "\r\n\r\nMessage: " + doc.comment
+					+  "\r\n\r\nReply here: " + base_url + "/listing/" + doc.listingId; 
+
+		Meteor.call('sendEmail',
+		            toEmail,
+		            'matt@clineranch.net',
+		            'New message alert from no 209',
+		            message);
+	});
+
+
+	//account signup configuration
 	Accounts.ui.config({
 	    requestPermissions: {},
 	    extraSignupFields: [{
@@ -689,46 +799,6 @@ if(Meteor.isClient){
 	        }
 	    }]
 	});
-
-	Listings.after.insert(function (userId, doc) {
-		Router.go('listing', {_id: doc._id})
-	});
-
-	Listings.after.update(function (userId, doc) {
-		Router.go('listing', {_id: doc._id})
-	});
-
-	Template.clear.helpers({
-	'clear': function(){
-        Meteor.call('deleteAll');
-    }
-	});
-
-	Contacts.before.insert(function (userId, doc) {
-		//send an email to alert contacted of new message.
-	   if (doc.userIdTo) {
-	   		//get the "to" user id from the form since it's a reply
-	   		toUserId = doc.userIdTo;
-	   	}else{
-	   		//get the "to" from the listing since this isn't a reply
-	   		listingid = doc.listingId;
-	   		userfromlisting = Listings.findOne({_id: listingid},{ fields: { 'userId': 1 } });
-	   		toUserId = userfromlisting.userId._id;
-	   }
-	   
-	   doc.userIdTo = toUserId;
-
-		toEmail = Meteor.users.findOne({_id: toUserId},{ fields: { 'emails': 1 } });
-	   	toEmail = toEmail.emails[0].address;
-
-	   	message = "You have received a message on a listing.  View it here: " + base_url + "/listing/" + doc.listingId; 
-
-		Meteor.call('sendEmail',
-		            toEmail,
-		            'matt@clineranch.net',
-		            'New message alert from no 209',
-		            message);
-	});
 	
 }
 
@@ -742,7 +812,6 @@ if(Meteor.isServer){
 		return Meteor.users.find({}, { fields: { profile: 1, emails: 1} }); 
 	});
 	
-
 	Meteor.methods({
 		getGeocodedResults: function (address) {
 			var geo = new GeoCoder();
@@ -759,8 +828,7 @@ if(Meteor.isServer){
 		sendEmail: function (to, from, subject, text) {
 			check([to, from, subject, text], [String]);
 
-			// Let other method calls from the same client start running,
-			// without waiting for the email sending to complete.
+			//don't wait for the email send to complete
 			this.unblock();
 
 			Email.send({
@@ -781,7 +849,6 @@ if(Meteor.isServer){
 		}
 	});
 
-
 	Listings.before.insert(function (userId, doc) {
 	   var geo = new GeoCoder();
 	   var result = geo.geocode(doc.address);
@@ -793,6 +860,8 @@ if(Meteor.isServer){
 	   doc.coordinates[0].lat = result[0].latitude;
 
 	   doc.userId = Meteor.user();
+
+	   doc.createdAt = new Date();
 
 	});
 
@@ -810,9 +879,9 @@ if(Meteor.isServer){
 
 	});
 
-
 	Contacts.before.insert(function (userId, doc) {
 	   doc.userId = userId;
+	   doc.createdAt = new Date();
 	});
 
 	Meteor.startup(function () {
@@ -836,6 +905,8 @@ if(Meteor.isServer){
 
 	Accounts.config({sendVerificationEmail: true, forbidClientAccountCreation: false});
 
+
+	//TODO - add more of this
 	Meteor.users.deny({
 	  update: function() {
 	    return true;

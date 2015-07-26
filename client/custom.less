@@ -4,9 +4,9 @@ html, body, .right-side.home, #map {
   height: 100%;
 }
 
-
-#map{width:100%;position:relative;}
-
+#map{
+  width:100%;position:relative;
+}
 
 body,.navbar-brand,.navbar-nav{
 	font-family: 'Open Sans', serif;
@@ -26,6 +26,10 @@ ul.photos{
 }
 
 .spacey {
+  padding-top: 60px;
+}
+
+.always-spacey {
   padding-top: 60px;
 }
 
@@ -59,16 +63,29 @@ h3.listing-title{
 	position:absolute;
 	bottom: 45px;
 	left: 0px;
-	padding: 7px 10px;
 	background-color: #3c3f40;
 	background-color: rgba(60,63,64,0.9);
 	padding: 10px;
 	color: #fff;
 }
 
+.overlay-verified{
+  position:absolute;
+  top: 0px;
+  left: 0px;
+  padding: 10px;
+}
+
 .navbar{
   margin-bottom: 0px;
   padding-bottom: 0px;
+}
+
+.filters {
+  padding-bottom: 20px;
+  .verified {
+    margin-top: 7px;
+  }
 }
 
 .carousel .item {
@@ -83,26 +100,6 @@ h3.listing-title{
     background: none;
     border: none;
     top: 50%;
-}
-/*full width container*/
-@media (max-width: 767px) {
-    .block {
-        margin-left: -20px;
-        margin-right: -20px;
-    }
-    .spacey {
-    padding-top: 0px;
-    }
-
-    .right-side.listing{
-      padding-top: 10px;
-    }
-    #map {
-      margin-left: 30px;
-    }
-    .right-side.home{
-      margin-right: 75px;
-    }
 }
 
 form input[type="text"], form input[type="number"] {
@@ -165,4 +162,80 @@ form input[type="text"], form input[type="number"] {
     color: white;
     font-weight: bold;
   }
+}
+
+
+
+#slider{
+  float:left;
+  width: 80% !important;
+}
+#slider-low{
+  float:left;
+  width: 10%;
+  padding-left: 13px;
+  font-weight:bold;
+}
+#slider-high{
+  float:left;
+  text-align:right;
+  width: 10%;
+  padding-right: 13px;
+  font-weight:bold;
+}
+
+.nav .open > a, .nav .open > a:hover, .nav .open > a:focus {
+  background-color:#222222;
+}
+
+@media all and (max-width: 480px) {
+  /* styles for iPhone/Android landscape (and really narrow browser windows) */
+
+  #slider{
+  float:left;
+  width: 60% !important;
+  }
+  #slider-low{
+    float:left;
+    width: 20%;
+    padding-left: 13px;
+    font-weight:bold;
+  }
+  #slider-high{
+    float:left;
+    text-align:right;
+    width: 20%;
+    padding-right: 13px;
+    font-weight:bold;
+  }
+
+  .navbar-right {
+    padding-left: 15px;
+  }
+
+
+}
+
+/*full width container*/
+@media (max-width: 767px) {
+    .block {
+        margin-left: -20px;
+        margin-right: -20px;
+    }
+    .spacey {
+    padding-top: 0px;
+    }
+
+    .right-side.listing{
+      padding-top: 10px;
+    }
+    #map {
+      margin-left: 30px;
+    }
+    .right-side.home{
+      margin-right: 75px;
+    }
+    .right-side.listing{
+      padding-top: 0px;
+    }
 }

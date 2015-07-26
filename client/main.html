@@ -27,6 +27,7 @@
             <li><a href="{{pathFor route='mylistings'}}">My Listings</a></li>
             <li><a href="{{pathFor route='mymessages'}}">Messages</a></li>
             {{/if}}
+            <li><a href="{{pathFor route='about'}}">About</a></li>
           </ul>
           
           <ul class="nav navbar-nav navbar-right">
@@ -77,30 +78,33 @@
 
 <template name="listing">
     <div class="col-md-8 left-side" id="listing">
-      <h1>{{title}}</h1>
+      <h1>{{#if verifyRequested}}<a href="{{pathFor route='about'}}"><img src="/images/verified_badge_lg.png" title="209 Verified Listing"></a>{{/if}}  {{title}}</h1>
       <div class="contact-link">
       {{#unless isOwner userId}}
         {{#if currentUser}}
         <a href="#" id="comment">Contact <i class="fa fa-envelope"></i></a>
         {{else}}
-        Log in to send a message
+        Sign in / join to send a message
         {{/if}}
       {{else}}
         <a href="{{pathFor route='update' _id=_id }}">Edit listing <i class="fa fa-pencil"></i></a>
       {{/unless}}
       </div>
+
+      <div class="popup-gallery">
       <section class="block" style="clear:both;">
           <div id="myCarousel" class="carousel slide">
               <div class="carousel-inner">
 
                   <div class="active item">
+                  <a href="{{photourl.url}}" title="Main Image">
                       <img src="{{photourl.url}}" class="img-responsive" style="width:100%;"/>
+                  </a>
                   </div>
               </div>
           </div>
       </section>
       <br /><br />
-      <div class="popup-gallery">
       {{#each photos}}
        <a href="{{photosurl.url store='extras'}}" title="{{title}}">
           <img src="{{photosurl.url store='thumbs'}}" title="{{title}}">
@@ -149,13 +153,12 @@
 
     <div class="details">
     <h3>Details</h3>
-    {{#if verified}}<h3>209 Verified Listing</h3>{{/if}}
-    Type: {{listingType}}<br />
-    Price: {{price}}<br />
-    Power: {{hasPower}}<br />
-    Water: {{hasWater}}<br />
-    SQ Feet: {{sqFeet}}<br />
-    Max Height: {{maxHeight}}<br /><br />
+    <strong>Type:</strong> {{listingType}}<br />
+    <strong>Price:</strong> ${{price}}/month<br />
+    <strong>Power:</strong> {{#if hasPower}}Yes{{else}}No{{/if}}<br />
+    <strong>Water:</strong> {{#if hasWater}}Yes{{else}}No{{/if}}<br />
+    <strong>SQ Feet:</strong> {{sqFeet}}<br />
+    <strong>Max Height:</strong> {{maxHeight}}<br /><br />
     <div class="description"><p>{{breaklines description}}</p></div>
 
     </div>
@@ -169,6 +172,26 @@
 <template name="home">
 
     <div class="col-md-7 left-side" id="listings">
+      <div class="row filters">
+        <div class="col-md-6 col-xs-12">
+          <select name="listingType" class="form-control" id="listingtype">
+            <option value="spot house">Show All</option>
+            <option value="spot">Tiny Parking Spots Only</option>
+            <option value="house">Tiny Houses Only</option>
+          </select>
+        </div>
+        <div class="col-md-6 col-xs-12 verified">
+           <label for="verified"><input type="checkbox" name="verified" id="verified" value="1"> 209 Verified Listings Only&nbsp;&nbsp;<a href="{{pathFor route='about'}}"><img src="/images/verified_badge.png" title="209 Verified Badge: Click to learn more" height="23px"></a></label>
+           
+        </div>
+
+      </div>
+      <div class="row filters">
+        <div class="col-xs-12">
+          <div id="slider-low"></div><div id="slider"></div><div id="slider-high"></div>
+        </div>
+      </div>
+
       {{#unless results.count}}
         <h4>We couldn’t find any results that matched your criteria, but tweaking your search may help. Here are some ideas:</h4>
         <ul>
@@ -181,6 +204,7 @@
         <div class="col-md-6">
         <div class="listing">
           <a href="{{pathFor route='listing' _id=_id }}">
+            {{#if verifyRequested}}<div class="overlay-verified"><img src="/images/verified_badge.png" title="209 Verified Listing"></div>{{/if}}
             <div class="overlay-price">$ {{price}}/mo</div>
             <img src="{{photourl.url store='tiles'}}" class="img-responsive" style="width:100%;"/>
             <div class="details"><h3 class="listing-title">{{title}}</h3></div>
@@ -269,6 +293,25 @@
     <h1>Clear Collections</h1>
     All collection items have been deleted.
     {{clear}}
+  </div>
+
+</template>
+
+<template name="about">
+  <div class="always-spacey"></div>
+  <div class="col-md-7">
+    <h1>About</h1>
+    <h3>Welcome to no 209, the tiny house movement's marketplace</h3>
+    <p>We believe that there are a lot of tiny spaces to fill with tiny homes and encourage home and landowners to list their available space for tiny house parking. Have a tiny already that needs a great occupant? Post that too!</p>
+    <p><strong>Looking for a place to park your tiny or a tiny already parked and ready to move into?</strong> Browse around and when you're ready to learn more about a spot just hit the contact button and send the owner a note. See what unfolds from there.</p>
+    <p><strong>Have a place to park a tiny?</strong> Create an account and post a listing. Then let the tiny owners find you.</p>
+  </div>
+  <div class="col-md-5">
+    <div class="spacey"></div>
+    <p><img src="/images/verified_badge_lg.png" title="209 Verified Listing" align="left" style="padding-right: 10px; padding-bottom: 500px; padding-top: 10px;"><h3>209 Verified</h3> Look for these listings that have been personally reviewed by us on location. We have measured the site, sized up the overall space to ensure that the listing is accurate and taken some great photos to show it off best. This hands on expert assessment gives you piece of mind when shopping for a tiny home or home for your tiny.
+    <br /><br />
+    Want your listing to be 209 Verified?  <a href="#">Contact us</a> to schedule a visit.
+    </p> 
   </div>
 
 </template>

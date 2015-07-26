@@ -20,7 +20,6 @@ aldeed:geocoder
 cfs:standard-packages
 matb33:collection-hooks
 accounts-password
-accounts-google
 dburles:collection-helpers
 email
 peppelg:bootstrap-3-modal
@@ -30,6 +29,7 @@ chrismbeckett:toastr
 momentjs:moment
 u2622:persistent-session
 ian:accounts-ui-bootstrap-3
-msavin:mongol
 percolate:paginated-subscription
 gabrielengel:konecty-magnific-popup
+cfs:filesystem
+rcy:nouislider
