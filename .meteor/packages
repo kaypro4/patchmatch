@@ -5,7 +5,6 @@
 # but you can also edit it by hand.
 
 meteor-platform
-insecure
 bevanhunt:leaflet
 webapp
 browser-policy
@@ -33,3 +32,7 @@ percolate:paginated-subscription
 gabrielengel:konecty-magnific-popup
 cfs:filesystem
 rcy:nouislider
+mrgalaxy:stripe
+okgrow:analytics
+alanning:roles
+ongoworks:security

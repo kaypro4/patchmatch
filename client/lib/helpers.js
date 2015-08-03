@@ -12,5 +12,15 @@ if (Meteor.isClient) {
 		}catch(e){
 		}
 	});
+
+	Template.registerHelper('trimit', function(passedString) {
+		if (passedString.length > 40) {
+			var fooText = passedString.substring(0,40);
+			fooText = fooText.trim() + "...";
+		}else{
+			fooText = passedString;
+		}
+	    return new Spacebars.SafeString(fooText)
+	});
 	
 }

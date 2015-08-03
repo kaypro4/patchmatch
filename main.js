@@ -44,18 +44,11 @@ Images = new FS.Collection("images", {
 });
 
 
-//TODO - add more of this and turn off insecure.
-Images.allow({
-  download: function () {
-    return true;
-  },
-  fetch: null
-});
-
 
 Listings = new Mongo.Collection("listings");
 Photos = new Mongo.Collection("photos");
 Contacts = new Mongo.Collection("contacts");
+Favorites = new Mongo.Collection("favorites");
 
 
 
@@ -175,6 +168,11 @@ verified: {
     label: "Indicates if the listing has been verified by an admin",
     defaultValue: false
  },
+approved: {
+    type: Boolean,
+    label: "Indicates if the listing has been approved to be published",
+    defaultValue: false
+ },
  verifyRequested: {
     type: Boolean,
     label: "Would you like this listing to be 209 Verified?",
@@ -212,6 +210,12 @@ maxHeight: {
         {label: "Tiny House", value: "house"}
       ]
     }
+  },
+  stripeCustomerId: {
+    type: String,
+    label: "Stripe Customer ID",
+    max: 200,
+    optional: true
   }
 }));
 
@@ -265,22 +269,89 @@ Contacts.attachSchema(new SimpleSchema({
 }));
 
 
+Favorites.attachSchema(new SimpleSchema({
+  listingId: {
+    type: String,
+    label: "",
+    max: 200,
+    optional: true
+  },
+  userId: {
+    type: String,
+    label: "UserId",
+    max: 200,
+    optional: true
+  },
+  createdAt: {
+    type: Date,
+    label: "Date created",
+    optional: true
+  }
+}));
+
 //ROUTES
 //********************************************************************************************************
 
+//good role guide:  https://gentlenode.com/journal/meteor-13-managing-user-roles/24
 
 Router.configure({
     layoutTemplate: 'main'
 });
 
-Router.route('new');  
-Router.route('clear'); 
 Router.route('about'); 
 
 Router.route('home', {
-	path: '/',
-	waitOn: function() {Meteor.subscribe('listings')}
+  path: '/'
 });
+
+Router.route('clear', {
+  waitOn: function () {
+    return [ Meteor.subscribe("roles") ];
+  },
+  onBeforeAction: function() {
+    user = Meteor.user();
+    if(!Roles.userIsInRole(user, ['admin'])) {
+      this.redirect('home');
+    }
+    this.next();
+  }
+});
+
+Router.route('admin', {
+  waitOn: function () {
+    return [ Meteor.subscribe("roles") ];
+  },
+  onBeforeAction: function() {
+    user = Meteor.user();
+    if(!Roles.userIsInRole(user, ['admin'])) {
+      this.redirect('home');
+    }
+    this.next();
+  }
+});
+
+Router.route('new', {
+  onBeforeAction: function (pause) {
+    if (!Meteor.user()) {
+      this.redirect('home');
+    }else{
+      this.next();
+    }
+  }
+});
+
+Router.route('favorites', {
+  waitOn: function () {
+    return [ Meteor.subscribe("favorites") ];
+  },
+  onBeforeAction: function (pause) {
+    if (!Meteor.user()) {
+      this.redirect('home');
+    }else{
+      this.next();
+    }
+  }
+}); 
 
 Router.route('listing', {
 	path: '/listing/:_id',
@@ -289,40 +360,66 @@ Router.route('listing', {
 	onBeforeAction: function () {                                                                             
        Session.set('listingid', this.params._id); 
        this.next();                                                                
+    },
+  waitOn: function () {
+    if (Meteor.user()) {
+      return [ Meteor.subscribe("favorites"),Meteor.subscribe("contacts") ];
     }
+  }
 });
 
 Router.route('update', {
 	path: '/update/:_id',
 	data: function () {return Listings.findOne({_id: this.params._id})},
-	template: 'update'
+	template: 'update',
+  onBeforeAction: function (pause) {
+    if (!Meteor.user()) {
+      this.redirect('home');
+    }else{
+      this.next();
+    }
+  }
 });
 
 Router.route('mylistings', {
 	path: '/mylistings',
-	template: 'mylistings'
+	template: 'mylistings',
+  onBeforeAction: function (pause) {
+    if (!Meteor.user()) {
+      this.redirect('home');
+    }else{
+      this.next();
+    }
+  }
 });
 
 Router.route('mymessages', {
 	path: '/mymessages',
-	template: 'mymessages'
+	template: 'mymessages',
+  onBeforeAction: function (pause) {
+    if (!Meteor.user()) {
+      this.redirect('home');
+    }else{
+      this.next();
+    }
+  },
+  waitOn: function () {
+    if (Meteor.user()) {
+      return [ Meteor.subscribe('contacts') ];
+    }
+  }
 });
 
 
-var map = null;
+
+var map = null, markers = null;
 
 if(Meteor.isClient){
 
 	Meteor.subscribe('images');
-	Meteor.subscribe('contacts');
-	Meteor.subscribe("userData");
-	Meteor.subscribe("photos");
-
-	//TODO - is this doing anything?  Trying to get listings to update when route loads based on map extents...
-	Tracker.autorun(function () {
-	    var handle = Meteor.subscribeWithPagination('listings', 4);
-	});
-
+  Meteor.subscribe("photos");
+  Meteor.subscribe("listings");
+  Meteor.subscribe("userData");
 
 	Meteor.startup(function() {
 	  toastr.options.positionClass = "toast-bottom-right";
@@ -340,20 +437,27 @@ if(Meteor.isClient){
 	   // slider starts at 20 and 80
   	  Session.setDefaultPersistent("slider", [500, 2000]);
 
+
 	});
 	
 	Template.map.rendered = function() {
 	  L.Icon.Default.imagePath = 'packages/bevanhunt_leaflet/images';
 
+    var southWest = L.latLng(37.0606, -122.8808),
+        northEast = L.latLng(38.6154, -121.5746),
+    maxBounds = L.latLngBounds(southWest, northEast);
+
 	  center = Session.get("mapCenter");
 	  map = L.map('map', {
-	    doubleClickZoom: true
-	  }).setView(center, 13);
+	    doubleClickZoom: true,
+      maxBounds: maxBounds,
+      maxZoom: 15,
+      minZoom: 9
+	  }).setView(center, 11);
 
-	  L.tileLayer.provider('MapBox', {id: 'i8flan.jo1h0k21', accessToken: 'pk.eyJ1IjoiaThmbGFuIiwiYSI6ImZPbHhKYncifQ.qXeCay-TLmRzkMGsWCoyQg'}).addTo(map);
+	  L.tileLayer.provider('MapBox', {id: 'i8flan.jo1h0k21', accessToken: Meteor.settings.public.general.map_box_key}).addTo(map);
 
 	  map.on('moveend', function() { 
-	     console.log(map.getBounds());
 
 	     center = map.getCenter();
 	     Session.setPersistent("mapCenter", center);
@@ -368,20 +472,56 @@ if(Meteor.isClient){
 
 	  });
 
-	  var query = Listings.find();
-	  query.observe({
-	    added: function (listing) {
-	    	if (listing.lat != null) {
-		    	var popOptions = {'minWidth': '200','className' : 'custom'};
-		    	var popupContents = '<a href="listing/' + listing._id + '"><!--<img src="' + listing.photo + '" class="img-responsive" style="width:100%;"/>--><div class="details"><h3 class="listing-title">' + listing.title + '</h3></div></a>';
+    //put them in a marker group so we can remove them all easily
+    markers = new L.LayerGroup().addTo(map);
 
-		     	var marker = L.marker([listing.lat, listing.lng]).bindPopup(popupContents,popOptions).addTo(map)
-		        .on('click', function(event) {
-		        });
+    // If the collection of listings changes
+    Tracker.autorun(function() {
 
-	    	}  
-	    }
-	  });
+      bounds = Session.get("mapBounds");
+
+      listingtype = Session.get("listingtype");
+      verified = Session.get("verified");
+
+      localslider = Session.get("slider");
+      lowEnd = Math.round(localslider[0]);
+      highEnd = Math.round(localslider[1]);
+
+      //build the query dynamically so we can use conditionals to append criteria or not
+      var query = {"lng" : {
+                "$gt" : bounds.southWest[1],
+                "$lt":  bounds.northEast[1]  
+              },
+              "lat": {
+                "$gt" : bounds.southWest[0],
+                "$lt": bounds.northEast[0]
+              }
+              , 'listingType': {$in : listingtype}
+              , 'price' : { $gt :  lowEnd, $lt : highEnd}
+            }
+
+        if (verified === true) {
+          query.verifyRequested = true;
+        }
+
+        var listingList = Listings.find(query).fetch();
+        markers.clearLayers();
+
+        listingList.forEach(function(listings) {
+          var popOptions = {'minWidth': '100','className' : 'custom'};
+          var popupContents = '<a href="listing/' + listings._id + '"><!--<img src="' + listings.photourl + '" class="img-responsive" style="width:100%;"/>--><div class="details"><h3 class="listing-title">' + listings.title + '</h3></div></a>';
+
+          var marker = L.marker([listings.lat, listings.lng], {_id:listings._id}).bindPopup(popupContents,popOptions).addTo(markers)
+            .on('click', function(event) {
+          });
+        });
+    });
+
+    //get map center
+    center = map.getCenter();
+    //move to map center
+    map.panTo(center);
+
 	};
 
 
@@ -391,7 +531,10 @@ if(Meteor.isClient){
 	Listings.helpers({
 	  'photourl': function() {
 	    return Images.findOne(this.photo);
-	  }
+	  },
+    'favorited': function() {
+      return Favorites.findOne({listingId: this._id, userId: Meteor.userId()});
+    }
 	});
 
 	Photos.helpers({
@@ -399,6 +542,12 @@ if(Meteor.isClient){
 	    return Images.findOne(this.photo);
 	  }
 	});
+
+  Favorites.helpers({
+    'listing': function() {
+      return Listings.findOne(this.listingId);
+    }
+  });
 
 	Contacts.helpers({
 	  'listing': function() {
@@ -458,7 +607,7 @@ if(Meteor.isClient){
 	      connect: true,
 	      range: {
 	        'min': 0,
-	        'max': 3000
+	        'max': 4000
 	      }
 	    }).on('slide', function (ev, val) {
 	      // set real values on 'slide' event
@@ -475,7 +624,6 @@ if(Meteor.isClient){
 	};
 
 
-
 	//TEMPLATE EVENTS
 	//********************************************************************************************************
 
@@ -488,7 +636,11 @@ if(Meteor.isClient){
 		    Modal.show('contactReply');
 		    Session.set("contactid", this._id);
 		    Session.set("contactorid", this.userId);
-		}
+		},
+    'click #faveme': function(event, template){
+        event.preventDefault();
+        Meteor.call( 'faveMe', this._id, Meteor.userId() );
+    }
 	});
 
 
@@ -499,12 +651,57 @@ if(Meteor.isClient){
 		}
 	});
 
+  Template.mylistings.events({
+    'click #delete': function(){
+        Modal.show('deleteConfirm');
+        Session.set("listingid", this._id);
+    }
+  });
+
+
+  Template.commentModal.events({
+    'click #sendverifyemail': function(){
+        Meteor.call('sendVerificationEmail');
+        Modal.hide('commentModal');
+        toastr.success("Verification sent.");
+    }
+  });
+
 	Template.main.events({
 		'click #sendverifyemail': function(){
 		    Meteor.call('sendVerificationEmail');
 		    toastr.success("Verification sent.");
-		}
+		},
+    'click #pay': function(e) {
+      e.preventDefault();
+      Session.set("listingid", this._id);
+
+      StripeCheckout.open({
+        key: Meteor.settings.public.stripe.testPublishableKey,
+        amount: 800, // this is equivalent to $8
+        name: 'Activate Listing',
+       //email: '', //TODO - default this to the users email
+        description: '$8/month until cancelled',
+        panelLabel: 'Subscribe',
+        token: function(res) {
+          stripeToken = res;
+          listingId = Session.get("listingid");
+          Meteor.call('chargeCard', stripeToken, listingId);
+        }
+      });
+    }
 	});
+
+  Template.deleteConfirm.events({
+    'click #deleteit': function(e){
+        e.preventDefault();
+
+        listingId = Session.get("listingid");
+        Meteor.call('deleteListing', listingId);
+        Modal.hide('deleteConfirm');
+        toastr.success("Listing deleted.");
+    }
+  });
 
 
 	Template.home.events({
@@ -522,22 +719,26 @@ if(Meteor.isClient){
 
       event.target.text.value = "";
     },
-	'click #comment': function(){
-	    Modal.show('commentModal');
-	    Session.set("listingid", this._id);
-	},
-	"change #listingtype": function(evt) {
-		var newValue = $(evt.target).val();
-		//convert to an array
-		var newArray = newValue.split(" ");
-		//store in the session variable so we can check when the template renders
-		Session.setPersistent("listingtype", newArray);
-	 },
-	"change #verified": function(evt) {
-		var setValue = $(evt.target).is(':checked');
-		//store in the session variable so we can check when the template renders
-		Session.setPersistent("verified", setValue);
-	 }
+  	'click #comment': function(){
+  	    Modal.show('commentModal');
+  	    Session.set("listingid", this._id);
+  	},
+  	"change #listingtype": function(evt) {
+  		var newValue = $(evt.target).val();
+  		//convert to an array
+  		var newArray = newValue.split(" ");
+  		//store in the session variable so we can check when the template renders
+  		Session.setPersistent("listingtype", newArray);
+  	 },
+  	"change #verified": function(evt) {
+  		var setValue = $(evt.target).is(':checked');
+  		//store in the session variable so we can check when the template renders
+  		Session.setPersistent("verified", setValue);
+  	 },
+    'click #togglefilters': function(){
+      //nothing yet, but may want to change the text to say show/hide depending upon state
+    }
+
   	});
 
 
@@ -550,13 +751,12 @@ if(Meteor.isClient){
         return Contacts.find({'listingId': this._id,'userId': {$ne: Meteor.userId()}}, {sort: {createdAt: -1}});
     },
     'isOwner': function(thisUserId) {
-
     	if (thisUserId && (thisUserId._id === Meteor.userId())) {
     		return true
     	}else{
     		return false
     	}
-	},
+	   },
     'contacted': function(){
         return Contacts.find({'userId': Meteor.userId(),'listingId': this._id}, {sort: {createdAt: -1}});
     },
@@ -585,6 +785,30 @@ if(Meteor.isClient){
 	}
 	});
 
+  Template.admin.helpers({
+    'results': function(){
+        return Listings.find({}, {sort: {createdAt: -1}});
+    },
+    'contacts': function(){
+        return Contacts.find({}, {sort: {createdAt: -1}});
+    },
+    'users': function(){
+        return Meteor.Users.find({}, {sort: {createdAt: -1}});
+    }
+  });
+
+  Template.favorites.helpers({
+    'results': function(){
+        return Favorites.find({'userId': Meteor.userId()}, {sort: {createdAt: -1}});
+    }
+  });
+
+  Template.new.helpers({
+    'listings': function(){
+        return Listings.find({'userId': Meteor.userId()}, {sort: {createdAt: -1}});
+    }
+  });
+
 	Template.mymessages.helpers({
     'sentmessages': function(){
         return Contacts.find({'userId': Meteor.userId()}, {sort: {createdAt: -1}});
@@ -612,7 +836,7 @@ if(Meteor.isClient){
 	});
 
 	Template.home.helpers({
-	    results: function(){
+	 results: function(){
 		bounds = Session.get("mapBounds");
 
 		listingtype = Session.get("listingtype");
@@ -620,7 +844,7 @@ if(Meteor.isClient){
 
 		localslider = Session.get("slider");
 		lowEnd = Math.round(localslider[0]);
-	    highEnd = Math.round(localslider[1]);
+	  highEnd = Math.round(localslider[1]);
 
 		//build the query dynamically so we can use conditionals to append criteria or not
 		var query = {"lng" : {
@@ -639,7 +863,8 @@ if(Meteor.isClient){
 					query.verifyRequested = true;
 				}
 
-		return Listings.find(query, {sort: {createdAt: -1}});
+      //console.log(query);
+		  return Listings.find(query, {sort: {createdAt: -1}});
 
 	    },
 	    'isOwner': function(thisUserId) {
@@ -672,13 +897,13 @@ if(Meteor.isClient){
 	        return Session.get("listingid");
 	    },
 	    'isVerified': function() {
-		userId = Meteor.userId();
-		var user = Meteor.users.findOne({_id: userId, 'emails.0.verified': false});
-   		if (user) {
-		    return false;
-		  }
-		  return true;
-		}
+  		userId = Meteor.userId();
+  		var user = Meteor.users.findOne({_id: userId, 'emails.0.verified': false});
+     		if (user) {
+  		    return false;
+  		  }
+  		  return true;
+  		}
 	});
 
 	Template.commentModal.helpers({
@@ -726,31 +951,31 @@ if(Meteor.isClient){
 	});
 
 	Contacts.before.insert(function (userId, doc) {
-		//send an email to alert contacted of new message.
-	   if (doc.userIdTo) {
-	   		//get the "to" user id from the form since it's a reply
-	   		toUserId = doc.userIdTo;
-	   	}else{
-	   		//get the "to" from the listing since this isn't a reply
-	   		listingid = doc.listingId;
-	   		userfromlisting = Listings.findOne({_id: listingid},{ fields: { 'userId': 1 } });
-	   		toUserId = userfromlisting.userId._id;
-	   }
-	   
-		doc.userIdTo = toUserId;
+    //make sure there is some text first.
+    if (doc.comment){
+  		//send an email to alert contacted of new message.
+  	   if (doc.userIdTo) {
+  	   		//get the "to" user id from the form since it's a reply
+  	   		toUserId = doc.userIdTo;
+  	   	}else{
+  	   		//get the "to" from the listing since this isn't a reply
+  	   		listingid = doc.listingId;
+  	   		userfromlisting = Listings.findOne({_id: listingid},{ fields: { 'userId': 1 } });
+  	   		toUserId = userfromlisting.userId._id;
+  	   }
+  	   
+  		  doc.userIdTo = toUserId;
 
-		toEmail = Meteor.users.findOne({_id: toUserId},{ fields: { 'emails': 1 } });
-			toEmail = toEmail.emails[0].address;
+  			message = "You have received a message on a listing."
+  					+ "\r\n\r\nMessage: " + doc.comment
+  					+  "\r\n\r\nReply here: " + Meteor.settings.public.general.base_url + "/listing/" + doc.listingId; 
 
-			message = "You have received a message on a listing."
-					+ "\r\n\r\nMessage: " + doc.comment
-					+  "\r\n\r\nReply here: " + base_url + "/listing/" + doc.listingId; 
-
-		Meteor.call('sendEmail',
-		            toEmail,
-		            'matt@clineranch.net',
-		            'New message alert from no 209',
-		            message);
+  		  Meteor.call('sendEmailWithUserid',
+  		            toUserId,
+  		            'matt@clineranch.net',
+  		            'New message alert from no 209',
+  		            message);
+    }
 	});
 
 
@@ -806,12 +1031,59 @@ if(Meteor.isServer){
 
 	Meteor.publish("photos", function(){ return Photos.find(); });
 	Meteor.publish("images", function(){ return Images.find(); });
-	Meteor.publish("contacts", function(){ return Contacts.find(); });
-	Meteor.publish("listings", function(limit){ return Listings.find({}, {limit: limit}); });
+	Meteor.publish("listings", function(){ return Listings.find(); });
+
+  Meteor.publish("favorites", function(){ return Favorites.find(); });
+  Meteor.publish("contacts", function(){ return Contacts.find(); });
+
 	Meteor.publish("userData", function () { 
-		return Meteor.users.find({}, { fields: { profile: 1, emails: 1} }); 
+    //TODO - insecure to publish emails to client.  Stop doing it!
+		return Meteor.users.find({}, { fields: { profile: 1 } }); 
 	});
-	
+
+	Meteor.publish("roles", function (){ 
+    return Meteor.roles.find({})
+  })
+
+
+  ///http://stackoverflow.com/questions/31035175/wrapping-stripe-create-customer-callbacks-in-fibers-in-meteor
+  var Future = Npm.require('fibers/future');
+
+  var Stripe = StripeAPI(Meteor.settings.private.stripe.testSecretKey);
+
+  function createCustomer(token){
+    var future = new Future;
+    //console.log(token);
+
+    Stripe.customers.create({
+      source: token.id,
+      email: token.email,
+      plan: '209-8-Monthly',
+      description: token.email
+    }, function(error, result){
+      if (error){
+        future.return(error);
+      } else {
+        future.return(result);
+      }
+    });
+    return future.wait();
+  }
+
+  function deleteCustomer(customerId){
+    console.log(customerId);
+    var future = new Future;
+    Stripe.customers.del(customerId, function(error, result){
+      if (error){
+        future.return(error);
+      } else {
+        future.return(result);
+      }
+    });
+    return future.wait();
+  }
+
+
 	Meteor.methods({
 		getGeocodedResults: function (address) {
 			var geo = new GeoCoder();
@@ -825,6 +1097,22 @@ if(Meteor.isServer){
 			Photos.remove({});
 			Meteor.users.remove({});
 		},
+    sendEmailWithUserid: function (toUserId, from, subject, text) {
+      check([toUserId, from, subject, text], [String]);
+
+      //don't wait for the email send to complete
+      this.unblock();
+
+      var to = Meteor.users.findOne({'_id': toUserId},{ fields: { 'emails': 1 } });
+      to = to.emails[0].address;
+
+      Email.send({
+        to: to,
+        from: from,
+        subject: subject,
+        text: text
+      });
+    },
 		sendEmail: function (to, from, subject, text) {
 			check([to, from, subject, text], [String]);
 
@@ -846,10 +1134,91 @@ if(Meteor.isServer){
 			var user = Meteor.users.findOne({_id: userId, 'emails.0.verified': false});
 			if (user)
 			  Accounts.sendVerificationEmail(userId, user.emails[0].address);
-		}
+		},
+    'getEmail': function (userId) {
+        console.log(userId);
+        var toEmail = Meteor.users.findOne({'_id': userId},{ fields: { 'emails': 1 } });
+        toEmail = toEmail.emails[0].address;
+        console.log(toEmail);
+        return toEmail;
+    },
+    faveMe: function (listingId, userId) {
+      //get the fave
+      var fave = Favorites.findOne({userId: userId, listingId: listingId});
+      if (fave) {
+         //if exists, delete
+         Favorites.remove(fave._id);
+      }else{
+        //else, then add
+        Favorites.insert({
+          listingId: listingId,
+          userId: userId
+        });
+      }
+    },
+    'chargeCard': function(token, listingId){
+      try {
+        //console.log(token);
+        //console.log(listingId);
+
+        var customer = createCustomer(token);
+
+        //console.log("customer" + customer.id);
+
+        var customerid = customer.id;
+
+        Listings.update({_id: listingId}, {$set: {stripeCustomerId:customerid}});
+
+      } catch(error) {
+        //console.log("error: " + error);
+
+        message = "listingId:" + listingId + "\r\n\r\nError:" + error;
+
+        Meteor.call('sendEmail',
+                Meteor.settings.public.admin_email,
+                'matt@clineranch.net',
+                'Error message alert from no 209',
+                message);
+      }
+    },
+    'deleteListing': function(listingId){
+      try {
+        //grab the stripe customer ID from the listing
+        customerId = Listings.findOne({'_id': listingId},{ fields: { 'stripeCustomerId': 1 } });
+        customerIdOnly = customerId.stripeCustomerId;
+
+        //delete the customer and related plans in stripe
+        if (customerIdOnly) {
+          var customerDel = deleteCustomer(customerIdOnly);
+        }
+
+        // //delete all the listing data and artifacts
+        Listings.remove(listingId);
+        Contacts.remove({listingId: listingId});
+        //Images.remove({listingId: listingId});
+        Photos.remove({listingId: listingId});
+        Favorites.remove({listingId: listingId});
+
+        console.log("listing deleted");
+
+        //TODO - delete all associated images
+
+      } catch(error) {
+        message = "listingId:" + listingId + "\r\n\r\nError:" + error;
+
+        Meteor.call('sendEmail',
+                Meteor.settings.public.admin_email,
+                'matt@clineranch.net',
+                'Error message alert from no 209',
+                message);
+      }
+    }
+
 	});
 
 	Listings.before.insert(function (userId, doc) {
+    //TODO -check if outside of bounding box
+
 	   var geo = new GeoCoder();
 	   var result = geo.geocode(doc.address);
 
@@ -865,17 +1234,29 @@ if(Meteor.isServer){
 
 	});
 
-	Listings.before.update(function (userId, doc) {
-	   var geo = new GeoCoder();
-	   var result = geo.geocode(doc.address);
+	Listings.before.update(function (userId, doc, fieldNames, modifier, options) {
+     //TODO - restrict updates to listings to listing owner or admin.
+     //if (doc.userId._id !== Meteor.user()._id && Roles.userIsInRole(Meteor.user(), ['admin'])){
 
-	   doc.lat = result[0].latitude;
-	   doc.lng = result[0].longitude;
+      //console.log(Meteor.user()._id);
+      //console.log(doc.userId._id);
+      if ((doc.userId._id !== Meteor.user()._id) || (Roles.userIsInRole(Meteor.user(), ['admin']))){
+        //did this so that we only run the geocoder if the address field is available in the fieldNames array
+        if ( fieldNames.indexOf( "address" ) > -1 ) {
 
-	   doc.coordinates[0].lon = result[0].longitude;
-	   doc.coordinates[0].lat = result[0].latitude;
+         //console.log("Updated lat and long")
 
-	   doc.userId = Meteor.user();
+         geo = new GeoCoder();
+         result = geo.geocode(modifier.$set.address);
+
+         modifier.$set.lat = result[0].latitude;
+         modifier.$set.lng = result[0].longitude;
+
+         modifier.$set.coordinates[0].lon = result[0].longitude;
+         modifier.$set.coordinates[0].lat = result[0].latitude;
+
+       }
+     }
 
 	});
 
@@ -884,9 +1265,15 @@ if(Meteor.isServer){
 	   doc.createdAt = new Date();
 	});
 
+  Contacts.before.remove(function (userId, doc) {
+     if (doc.userId._id !== Meteor.user()._id && Roles.userIsInRole(Meteor.user(), ['admin'])){
+        return false;
+     }
+  });
+
 	Meteor.startup(function () {
 	  //set in config.js
-	  process.env.MAIL_URL = mail_url;  
+	  process.env.MAIL_URL = Meteor.settings.private.general.mail_url;  
 	  Accounts.emailTemplates.from = 'no 209 <matt@clineranch.net>';
 	  Accounts.emailTemplates.siteName = 'no 209';
 	  Accounts.emailTemplates.verifyEmail.subject = function(user) {
@@ -905,14 +1292,51 @@ if(Meteor.isServer){
 
 	Accounts.config({sendVerificationEmail: true, forbidClientAccountCreation: false});
 
+  //PERMISSIONS
+  //********************************************************************************************************
+  //help here: https://github.com/ongoworks/meteor-security
 
-	//TODO - add more of this
-	Meteor.users.deny({
-	  update: function() {
-	    return true;
-	  }
-	});
+  Photos.permit(['insert', ,'update', 'remove']).ifLoggedIn().apply();
 
+  Images.files.permit(['insert', 'update']).ifHasRole('admin').apply();
+  Images.files.permit(['insert','remove']).ifLoggedIn().apply();
+ 
+  Meteor.users.permit(['insert']).apply();
+  Meteor.users.permit(['update']).ifLoggedIn().apply();
+  Meteor.users.permit(['insert', 'update', 'remove']).ifHasRole('admin').apply();
+
+  Contacts.permit(['insert']).ifLoggedIn().apply();
+  Contacts.permit(['insert', ,'update', 'remove']).ifHasRole('admin').apply();
+
+  Photos.permit(['insert', 'update', 'remove']).ifLoggedIn().apply();
+  Photos.permit(['insert', ,'update', 'remove']).ifHasRole('admin').apply();
+
+  Favorites.permit(['insert', 'update', 'remove']).ifLoggedIn().apply();
+
+  Listings.permit(['insert', 'update', 'remove']).ifLoggedIn().apply();
+  Listings.permit(['insert', ,'update', 'remove']).ifHasRole('admin').apply();
+  //Listings.permit('update').ifLoggedIn().exceptProps(['verified', 'approved']).apply();
+
+  Meteor.users.deny({
+    update: function() {
+      return true;
+    }
+  });
+
+  Images.allow({
+    download: function () {
+      return true;
+    },
+    fetch: null
+  });
+
+
+  Meteor.startup(function() {
+    //make sure admin user is in admin role
+    Roles.addUsersToRoles('dbY6PWkLrhzP2kwv2', ['admin']);
+    Roles.addUsersToRoles('T7WG2WpkKcZdNgatb', ['admin']);
+  });
+  
 
 }
 
