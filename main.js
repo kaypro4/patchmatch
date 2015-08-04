@@ -319,7 +319,7 @@ Router.route('clear', {
 
 Router.route('admin', {
   waitOn: function () {
-    return [ Meteor.subscribe("roles") ];
+    return [ Meteor.subscribe("roles"), Meteor.subscribe("contacts") ];
   },
   onBeforeAction: function() {
     user = Meteor.user();
@@ -498,11 +498,15 @@ if(Meteor.isClient){
               }
               , 'listingType': {$in : listingtype}
               , 'price' : { $gt :  lowEnd, $lt : highEnd}
+              , 'stripeCustomerId' : { $exists: true }
             }
 
         if (verified === true) {
           query.verifyRequested = true;
         }
+
+        //only show listings that have been approved by an admin
+        query.approved = true;
 
         var listingList = Listings.find(query).fetch();
         markers.clearLayers();
@@ -640,6 +644,10 @@ if(Meteor.isClient){
     'click #faveme': function(event, template){
         event.preventDefault();
         Meteor.call( 'faveMe', this._id, Meteor.userId() );
+    },
+    'click #uploadimages': function(){
+        Modal.show('fileUploader');
+        Session.set("listingid", this._id);
     }
 	});
 
@@ -765,7 +773,22 @@ if(Meteor.isClient){
     },
     'photos': function() {
     	return Photos.find({'listingId': this._id});
-  	}
+  	},
+    'showToNonOwner': function(thisUserId,approved) {
+      if ((thisUserId && (thisUserId._id === Meteor.userId())) || (Roles.userIsInRole(Meteor.user(), ['admin']))) {
+        //owner or admin
+        return true;
+      }else{
+        //non-owner
+        if (approved === true && stripeCustomerId) {
+          //but approved
+          return true;
+        }else{
+          //not approved, so hide
+          return false;
+        }
+      }
+     }
 	});
 
 	Template.mylistings.helpers({
@@ -793,7 +816,7 @@ if(Meteor.isClient){
         return Contacts.find({}, {sort: {createdAt: -1}});
     },
     'users': function(){
-        return Meteor.Users.find({}, {sort: {createdAt: -1}});
+        return Meteor.users.find();
     }
   });
 
@@ -857,11 +880,15 @@ if(Meteor.isClient){
 				      }
 			        , 'listingType': {$in : listingtype}
 			        , 'price' : { $gt :  lowEnd, $lt : highEnd}
+              , 'stripeCustomerId' : { $exists: true }
 		    		}
 
 				if (verified === true) {
 					query.verifyRequested = true;
 				}
+
+        //only show listings that have been approved by an admin
+        query.approved = true;
 
       //console.log(query);
 		  return Listings.find(query, {sort: {createdAt: -1}});
@@ -1091,11 +1118,13 @@ if(Meteor.isServer){
 			return result;
 		},
 		deleteAll: function() {
-			Listings.remove({});
-			Contacts.remove({});
-			Images.remove({});
-			Photos.remove({});
-			Meteor.users.remove({});
+      if (Roles.userIsInRole(Meteor.user(), ['admin'])){
+  			Listings.remove({});
+  			Contacts.remove({});
+  			Images.remove({});
+  			Photos.remove({});
+  			//Meteor.users.remove({});
+      }
 		},
     sendEmailWithUserid: function (toUserId, from, subject, text) {
       check([toUserId, from, subject, text], [String]);
@@ -1169,13 +1198,21 @@ if(Meteor.isServer){
 
         Listings.update({_id: listingId}, {$set: {stripeCustomerId:customerid}});
 
+         message = "Stripe payment activated: " + Meteor.user()._id + "\r\n\r\nView here: " + Meteor.settings.public.general.base_url + "/listing/" + listingId;
+
+         Meteor.call('sendEmail',
+                Meteor.settings.public.general.admin_email,
+                'matt@clineranch.net',
+                'Admin alert from no 209: Payment Activated',
+                message);
+
       } catch(error) {
         //console.log("error: " + error);
 
-        message = "listingId:" + listingId + "\r\n\r\nError:" + error;
+        message = "Stripe customer create attempted by: " + Meteor.user()._id + "\r\n\r\nlistingId:" + listingId + "\r\n\r\nError:" + error;
 
         Meteor.call('sendEmail',
-                Meteor.settings.public.admin_email,
+                Meteor.settings.public.general.admin_email,
                 'matt@clineranch.net',
                 'Error message alert from no 209',
                 message);
@@ -1184,30 +1221,44 @@ if(Meteor.isServer){
     'deleteListing': function(listingId){
       try {
         //grab the stripe customer ID from the listing
-        customerId = Listings.findOne({'_id': listingId},{ fields: { 'stripeCustomerId': 1 } });
-        customerIdOnly = customerId.stripeCustomerId;
+        ownerData = Listings.findOne({'_id': listingId},{ fields: { 'stripeCustomerId': 1,'userId': 1 } });
+        customerIdOnly = ownerData.stripeCustomerId;
+        userIdOnly = ownerData.userId;
 
-        //delete the customer and related plans in stripe
-        if (customerIdOnly) {
-          var customerDel = deleteCustomer(customerIdOnly);
+         if ((userIdOnly._id === Meteor.user()._id) || (Roles.userIsInRole(Meteor.user(), ['admin']))){
+
+          //delete the customer and related plans in stripe
+          if (customerIdOnly) {
+            var customerDel = deleteCustomer(customerIdOnly);
+          }
+
+          // //delete all the listing data and artifacts
+          Listings.remove(listingId);
+          Contacts.remove({listingId: listingId});
+          //Images.remove({listingId: listingId});
+          Photos.remove({listingId: listingId});
+          Favorites.remove({listingId: listingId});
+
+          console.log("listing deleted");
+
+          //TODO - delete all associated images
+
+          message = "Listing deleted by: " + Meteor.user()._id + "\r\n\r\nListing: " + listingId;
+
+          Meteor.call('sendEmail',
+              Meteor.settings.public.general.admin_email,
+              'matt@clineranch.net',
+              'Admin alert from no 209: Listing Deleted',
+              message);
         }
 
-        // //delete all the listing data and artifacts
-        Listings.remove(listingId);
-        Contacts.remove({listingId: listingId});
-        //Images.remove({listingId: listingId});
-        Photos.remove({listingId: listingId});
-        Favorites.remove({listingId: listingId});
 
-        console.log("listing deleted");
-
-        //TODO - delete all associated images
 
       } catch(error) {
-        message = "listingId:" + listingId + "\r\n\r\nError:" + error;
+        message = "Listing delete attempted by: " + Meteor.user()._id + "\r\n\r\nlistingId:" + listingId + "\r\n\r\nError:" + error;
 
         Meteor.call('sendEmail',
-                Meteor.settings.public.admin_email,
+                Meteor.settings.public.general.admin_email,
                 'matt@clineranch.net',
                 'Error message alert from no 209',
                 message);
@@ -1232,6 +1283,14 @@ if(Meteor.isServer){
 
 	   doc.createdAt = new Date();
 
+     message = "Listing added: " + Meteor.user()._id + "\r\n\r\nView here: " + Meteor.settings.public.general.base_url + "/listing/" + doc._id;
+
+     Meteor.call('sendEmail',
+            Meteor.settings.public.general.admin_email,
+            'matt@clineranch.net',
+            'Admin alert from no 209: New Listing',
+            message);
+
 	});
 
 	Listings.before.update(function (userId, doc, fieldNames, modifier, options) {
@@ -1240,7 +1299,25 @@ if(Meteor.isServer){
 
       //console.log(Meteor.user()._id);
       //console.log(doc.userId._id);
-      if ((doc.userId._id !== Meteor.user()._id) || (Roles.userIsInRole(Meteor.user(), ['admin']))){
+      if (Roles.userIsInRole(Meteor.user(), ['admin'])){
+        if ( fieldNames.indexOf( "approved" ) > -1 ) {
+          if (doc.approved === false && modifier.$set.approved === true) {
+
+            message = "Your listing is approved! Next step is to activate it by entering your payment details. \r\n\r\nHead over here and take care of it: " + Meteor.settings.public.general.base_url + "/listing/" + doc._id;
+
+            //TODO - make this go to the listing owner, not the admin
+
+            Meteor.call('sendEmail',
+                  Meteor.settings.public.general.admin_email,
+                  'matt@clineranch.net',
+                  'Your 209 Listing is Approved!',
+                  message);
+          }
+        }
+      }
+
+
+      if ((doc.userId._id === Meteor.user()._id) || (Roles.userIsInRole(Meteor.user(), ['admin']))){
         //did this so that we only run the geocoder if the address field is available in the fieldNames array
         if ( fieldNames.indexOf( "address" ) > -1 ) {
 
@@ -1256,13 +1333,56 @@ if(Meteor.isServer){
          modifier.$set.coordinates[0].lat = result[0].latitude;
 
        }
+
+        message = "Listing updated by: " + Meteor.user()._id + "\r\n\r\nView here: " + Meteor.settings.public.general.base_url + "/listing/" + doc._id;
+
+        Meteor.call('sendEmail',
+              Meteor.settings.public.general.admin_email,
+              'matt@clineranch.net',
+              'Admin alert from no 209: Updated Listing',
+              message);
+
+     }else{
+      console.log("Update not allowed by this user.");
+      message = "Listing update attempted but user not allowed: " + Meteor.user()._id + "\r\n\r\nlistingId:" + doc._id;
+
+      Meteor.call('sendEmail',
+              Meteor.settings.public.general.admin_email,
+              'matt@clineranch.net',
+              'Error message alert from no 209',
+              message);
+
+      return false;
      }
 
 	});
 
+  Listings.before.remove(function (userId, doc) {
+    //make sure they own the listing or are in the admin role
+    if ((doc.userId._id !== Meteor.user()._id) && (Roles.userIsInRole(Meteor.user(), ['admin']))){
+      console.log("Delete not allowed by this user.");
+      message = "Listing delete attempted but user not allowed: " + Meteor.user()._id + "\r\n\r\nlistingId:" + doc._id;
+
+      Meteor.call('sendEmail',
+              Meteor.settings.public.general.admin_email,
+              'matt@clineranch.net',
+              'Error message alert from no 209',
+              message);
+      return false;
+    }
+  });
+
 	Contacts.before.insert(function (userId, doc) {
 	   doc.userId = userId;
 	   doc.createdAt = new Date();
+
+     message = "Contact added: " + Meteor.user()._id + "\r\n\r\nlistingId:" + doc.listingId + "\r\n\r\nComment:" + doc.comment;
+
+     Meteor.call('sendEmail',
+            Meteor.settings.public.general.admin_email,
+            'matt@clineranch.net',
+            'Admin alert from no 209: New Contact',
+            message);
 	});
 
   Contacts.before.remove(function (userId, doc) {
@@ -1315,7 +1435,7 @@ if(Meteor.isServer){
 
   Listings.permit(['insert', 'update', 'remove']).ifLoggedIn().apply();
   Listings.permit(['insert', ,'update', 'remove']).ifHasRole('admin').apply();
-  //Listings.permit('update').ifLoggedIn().exceptProps(['verified', 'approved']).apply();
+  Listings.permit('update').ifLoggedIn().exceptProps(['verified', 'approved']).apply();
 
   Meteor.users.deny({
     update: function() {

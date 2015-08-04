@@ -52,11 +52,16 @@
     {{#each results}}
     <li><a href="{{pathFor route='listing' _id=_id }}">{{title}}</a>&nbsp;&nbsp;<a href="{{pathFor route='update' _id=_id }}"><i class="fa fa-pencil"></i></a>&nbsp;&nbsp;<a href="#" id="delete"><i class="fa fa-trash-o"></i></a>
     
-    {{#unless stripeCustomerId}}
+    {{#unless approved}}
     &nbsp;&nbsp;
-    <button type="button" class="btn btn-warning btn-xs" id="pay">
-      <span class="glyphicon glyphicon-usd" aria-hidden="true"></span> Activate
-    </button>
+    <i class="fa fa-exclamation-circle"></i> Approval Pending
+    {{else}}
+      {{#unless stripeCustomerId}}
+      &nbsp;&nbsp;
+      <button type="button" class="btn btn-warning btn-xs" id="pay">
+        <span class="glyphicon glyphicon-usd" aria-hidden="true"></span> Activate
+      </button>
+      {{/unless}}
     {{/unless}}
 
     </li>
@@ -130,15 +135,22 @@
 </template>
 
 <template name="listing">
+{{#if showToNonOwner userId approved}}
     <div class="col-md-8 left-side" id="listing">
 
-      {{#if isOwner userId}}
-        {{#unless stripeCustomerId}}
-        <div class="alert alert-warning" role="alert">Once this listing is ready to go you'll want to activate it. We don't start charging you until you do so that you can get it absolutely perfect before you release it to the world. Ready? <a href="#" id="pay">Activate now</a> to start in on the fun!</div>
-        {{/unless}}
-      {{/if}}
-
-      <h1>{{#if verifyRequested}}<a href="{{pathFor route='about'}}"><img src="/images/verified_badge_lg.png" title="209 Verified Listing"></a>{{/if}}  {{title}}</h1>
+      {{#unless approved}}
+        <div class="alert alert-warning" role="alert">This listing has not been approved yet. Please give us some time to look it over and flip the switch. You will get an email when the listing is approved and at that point you can enter your payment details.</div>
+      {{else}}
+        {{#if isOwner userId}}
+          {{#unless stripeCustomerId}}
+          <div class="alert alert-warning" role="alert">Once this listing is ready to go you'll want to activate it. We don't start charging you until you do so that you can get it absolutely perfect before you release it to the world. Ready? <a href="#" id="pay">Activate now</a> to start in on the fun!</div>
+          {{/unless}}
+        {{/if}}
+      {{/unless}}
+      
+      
+      
+      <h1>{{#if verified}}<a href="{{pathFor route='about'}}"><img src="/images/verified_badge_lg.png" title="209 Verified Listing"></a>{{/if}}  {{title}}</h1>
       {{#if currentUser}}
         <span class="rating"><a href="#" id="faveme" class="star {{#if favorited}}starred{{/if}}"></a>Favorite</span>
       {{/if}}
@@ -150,7 +162,8 @@
         Sign in / join to send a message
         {{/if}}
       {{else}}
-        <a href="{{pathFor route='update' _id=_id }}">Edit listing <i class="fa fa-pencil"></i></a>
+        <a href="{{pathFor route='update' _id=_id }}">Edit listing <i class="fa fa-pencil"></i></a> |
+        <a href="#" id="uploadimages">Manage Photos <i class="fa fa-picture-o"></i></a>
       {{/unless}}
       </span>
 
@@ -177,6 +190,7 @@
       <p></p>
       <p></p>
     </div>
+
     <div class="col-md-4 right-side listing">
       <div class="spacey"></div>
       {{#if isOwner userId}}
@@ -225,11 +239,14 @@
     <div class="description"><p>{{breaklines description}}</p></div>
 
     </div>
-    
-    </div>
-    
+  
 
-      
+  </div>
+{{else}}
+<div class="col-md-12 left-side" id="listing">
+<div class="alert alert-warning" role="alert">Uh oh, this listing hasn't received our stamp of approval yet. Is it yours? Log in and you'll be able to view and edit while we're doing our job to approve.</div>
+</div>
+{{/if}} 
 </template>
 
 <template name="home">
@@ -276,7 +293,7 @@
           <div class="col-md-6">
           <div class="listing">
             <a href="{{pathFor route='listing' _id=_id }}">
-              {{#if verifyRequested}}<div class="overlay-verified"><img src="/images/verified_badge.png" title="209 Verified Listing"></div>{{/if}}
+              {{#if verified}}<div class="overlay-verified"><img src="/images/verified_badge.png" title="209 Verified Listing"></div>{{/if}}
               <div class="overlay-price">$ {{price}}/mo</div>
               <img src="{{photourl.url store='tiles'}}" class="img-responsive" style="width:100%;"/>
               <div class="details"><h3 class="listing-title">{{title}}</h3></div>
@@ -353,6 +370,10 @@
     {{> afQuickField name="verifyRequested"}}
     {{> afQuickField name="photo"}}
     {{> afQuickField name="coordinates" class="coordinates"}}
+    {{#if isInRole 'admin'}}
+      {{> afQuickField name="verified"}}
+      {{> afQuickField name="approved"}}
+    {{/if}}
     
     <button class="btn btn-default" type="submit">Submit</button>
     {{/autoForm}}
@@ -581,12 +602,11 @@
 
 
 <template name="admin">
-    <div class="col-md-4 left-side">
+    <div class="col-md-6 left-side">
     <h2>Listings&nbsp;&nbsp;<a href="/new" style="font-size:65%;"><i class="fa fa-plus"></i> Add Listing</a></h2>
-    {{#unless results.count}}0 listings{{/unless}}
     <ul>
     {{#each results}}
-    <li><a href="{{pathFor route='listing' _id=_id }}">{{title}}</a>&nbsp;&nbsp;<a href="{{pathFor route='update' _id=_id }}"><i class="fa fa-pencil"></i></a>&nbsp;&nbsp;<a href="#" id="delete"><i class="fa fa-trash-o"></i></a>
+    <li><a href="{{pathFor route='listing' _id=_id }}">{{title}}</a> {{#if approved}}<i class="fa fa-check"></i>{{/if}} ({{userId._id}})&nbsp;&nbsp;<a href="{{pathFor route='update' _id=_id }}"><i class="fa fa-pencil"></i></a>&nbsp;&nbsp;<a href="#" id="delete"><i class="fa fa-trash-o"></i></a>
     
     {{#unless stripeCustomerId}}
     &nbsp;&nbsp;
@@ -599,13 +619,21 @@
     {{/each}}
     </ul>
     </div>
-    <div class="col-md-4 left-side">
+    <div class="col-md-3 left-side">
     <h2>Contacts</h2>
-    
+    <ul>
+    {{#each contacts}}
+    <li>{{comment}}&nbsp;&nbsp;<a href="#" id="deleteUser"><i class="fa fa-trash-o"></i></a></li>
+    {{/each}}
+    </ul>
     </div>
-    <div class="col-md-4 left-side">
+    <div class="col-md-3 left-side">
     <h2>Users</h2>
-
+    <ul>
+    {{#each users}}
+    <li>{{profile.lastname}}, {{profile.firstname}} ({{_id}})&nbsp;&nbsp;<a href="#" id="deleteUser"><i class="fa fa-trash-o"></i></a></li>
+    {{/each}}
+    </ul>
     </div>
 
 </template>
