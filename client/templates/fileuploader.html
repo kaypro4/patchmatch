@@ -1,0 +1,38 @@
+<template name="fileUploader">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Additional Images</h3>
+                </div>
+
+                <div class="modal-body">
+                    <h3>Upload New</h3>
+                    {{#if maxImages}}
+                        Oops, you're at the max. Only 10 additional images can be uploaded.
+                    {{else}}
+                      {{#autoForm id="insertGallery" type="insert" collection="Photos"}}
+                      {{> afQuickField name="title"}}
+                      {{> afQuickField name="photo"}}
+                      {{> afQuickField name="listingId" value=listingid}}
+                       
+                      <button class="btn btn-default" type="submit">Submit</button>
+                      {{/autoForm}}
+                    {{/if}}
+
+                    <h3>Manage Existing</h3>
+                    {{#unless photos.count}}No photos, upload some above.{{/unless}}
+                    <ul class="photos">
+                    {{#each photos}}
+                    <li><a href="#" id="delete"><i class="fa fa-trash-o"></i></a>&nbsp;<img src="{{photosurl.url store='thumbs'}}" width="75px"> {{title}}</li>
+                    {{/each}}
+                    </ul>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>

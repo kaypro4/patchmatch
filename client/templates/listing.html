@@ -1,0 +1,120 @@
+<template name="listing">
+{{#if showToNonOwner userId approved stripeCustomerId}}
+    <div class="col-md-8 left-side" id="listing">
+
+      {{#unless approved}}
+        <div class="alert alert-warning" role="alert">This listing has not been approved yet. Please give us some time to look it over and flip the switch. You will get an email when the listing is approved and at that point you can enter your payment details.</div>
+      {{else}}
+        {{#if isOwner userId}}
+          {{#unless stripeCustomerId}}
+          <div class="alert alert-warning" role="alert">Once this listing is ready to go you'll want to activate it. We don't start charging you until you do so that you can get it absolutely perfect before you release it to the world. Ready? <a href="#" id="pay">Activate now</a> to start in on the fun!</div>
+          {{/unless}}
+        {{/if}}
+      {{/unless}}
+      
+      
+      
+      <h1>{{#if verified}}<a href="{{pathFor route='about'}}"><img src="/images/verified_badge_lg.png" title="Tiny Acre Verified Listing"></a>{{/if}}  {{title}}</h1>
+      {{#if currentUser}}
+        <span class="rating"><a href="#" id="faveme" class="star {{#if favorited}}starred{{/if}}"></a>Favorite</span>
+      {{/if}}
+      <span class="contact-link">
+      {{#unless isOwner userId}}
+        {{#if currentUser}}
+        <a href="#" id="comment">Contact <i class="fa fa-envelope"></i></a>
+        {{else}}
+        Sign in / join to send a message
+        {{/if}}
+      {{else}}
+        <a href="{{pathFor route='update' _id=_id }}">Edit listing <i class="fa fa-pencil"></i></a> |
+        <a href="#" id="uploadimages">Manage Photos <i class="fa fa-picture-o"></i></a>
+      {{/unless}}
+      </span>
+
+      <div class="popup-gallery">
+      <section class="block" style="clear:both;">
+          <div id="myCarousel" class="carousel slide">
+              <div class="carousel-inner">
+
+                  <div class="active item">
+                  <a href="{{photourl.url}}" title="Main Image">
+                      <img src="{{photourl.url}}" class="img-responsive" style="width:100%;"/>
+                  </a>
+                  </div>
+              </div>
+          </div>
+      </section>
+      <br /><br />
+      {{#each photos}}
+       <a href="{{photosurl.url store='extras'}}" title="{{title}}">
+          <img src="{{photosurl.url store='thumbs'}}" title="{{title}}">
+       </a>
+       {{/each}}
+    </div>
+      <p></p>
+      <p></p>
+    </div>
+
+    <div class="col-md-4 right-side listing">
+      <div class="spacey"></div>
+      {{#if isOwner userId}}
+        <h3>Inbox</h3>
+        {{#unless contacts.count}}No messages yet{{/unless}}
+        <ul>
+        {{#each contacts}}
+        <li>{{formatDate createdAt}} <strong>{{contactor.profile.firstname}} {{contactor.profile.lastname}}</strong> - {{trimit comment}} <a href="#" id="contactreply"><i class="fa fa-reply"></i></a></li>
+        {{/each}}
+        </ul>
+        {{#if contacts.count}}<a href="{{pathFor route='mymessages'}}">more</a>{{/if}}
+        
+        {{#if contacted.count}}<h3>My Sent Messages</h3>{{/if}}
+        <ul>
+        {{#each contacted}}
+        <li>{{formatDate createdAt}} <strong>{{contactTo.profile.firstname}} {{contactTo.profile.lastname}}</strong> - {{trimit comment}}</li>
+        {{/each}}
+        </ul>
+        {{#if contacted.count}}<a href="{{pathFor route='mymessages'}}">more</a>{{/if}}
+
+      {{else}}
+        {{#if currentUser}}
+            {{#if contacted.count}}<h3>My Sent Messages</h3>{{/if}}
+            <ul>
+            {{#each contacted}}
+            <li>{{formatDate createdAt}} - {{trimit comment}}</li>
+            {{/each}}
+            </ul>
+            {{#if contacted.count}}<a href="{{pathFor route='mymessages'}}">more</a>{{/if}}
+
+            {{#if responses.count}}<h3>Replies from Owner</h3>{{/if}}
+            <ul>
+            {{#each responses}}
+            <li>{{formatDate createdAt}} - {{trimit comment}} <a href="#" id="contactreply"><i class="fa fa-reply"></i></a></li>
+            {{/each}}
+            </ul>
+            {{#if responses.count}}<a href="{{pathFor route='mymessages'}}">more</a>{{/if}}
+          {{/if}}
+      {{/if}}
+
+    <div class="details">
+    <h3>Details</h3>
+    <strong>Type:</strong> {{listingType}}<br />
+    <strong>Price:</strong> ${{price}}/month<br />
+    <strong>Power:</strong> {{#if hasPower}}Yes{{else}}No{{/if}}<br />
+    <strong>Water:</strong> {{#if hasWater}}Yes{{else}}No{{/if}}<br />
+    <strong>SQ Feet:</strong> {{sqFeet}}<br />
+    <strong>Max Height:</strong> {{maxHeight}}<br /><br />
+    <div class="description"><p>{{breaklines description}}</p></div>
+    {{#if verified}}
+    <h4>Tiny Acre Staff Comments</h4>
+    <div class="description"><p>{{breaklines verifiedComments}}</p></div>
+    {{/if}}
+    </div>
+
+
+  </div>
+{{else}}
+<div class="col-md-12 left-side" id="listing">
+<div class="alert alert-warning" role="alert">Uh oh, this listing isn't totally ready yet. Is it yours? Log in and see what still needs to be done to make it live.</div>
+</div>
+{{/if}} 
+</template>

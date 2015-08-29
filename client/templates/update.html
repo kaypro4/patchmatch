@@ -1,0 +1,31 @@
+<template name="update">
+  <div class="spacey"></div>
+  <div class="col-md-6">
+    <h1>Update Listing</h1>
+    <div class="upload-images" style="float:right;"><a href="#" id="uploadimages"><i class="fa fa-picture-o"></i> Manage additional images</a> | <a href="{{pathFor route='listing' _id=_id }}"> View Listing</a></div>
+    <br />
+    {{#autoForm id="updateForm" doc=this type="update" collection="Listings"}}
+    {{> afQuickField name="listingType"}}
+    {{> afQuickField name="title"}}
+    {{> afQuickField name="address"}}
+    {{> afQuickField name="price"}}
+    {{> afQuickField name="hasPower"}}
+    {{> afQuickField name="hasWater"}}
+    {{> afQuickField name="sqFeet"}}
+    {{> afQuickField name="maxHeight"}}
+    {{> afQuickField name="description" rows=6}}
+    {{> afQuickField name="verifyRequested"}}
+    {{> afQuickField name="photo"}}
+    {{> afQuickField name="coordinates" class="coordinates"}}
+    {{#if isInRole 'admin'}}
+      {{> afQuickField name="verified"}}
+      {{> afQuickField name="verifiedComments" rows=6}}
+      {{> afQuickField name="approved"}}
+    {{/if}}
+    
+    <button class="btn btn-default" type="submit">Submit</button>
+    {{/autoForm}}
+    <br /><br />
+  </div>
+  
+</template>

@@ -1,0 +1,34 @@
+<template name="main">
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="{{pathFor route='home'}}"><img src="/images/logo_50px.png" style="height:100%;" /></a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav navbar-left">
+            {{#if currentUser}}
+            <li><a href="{{pathFor route='mylistings'}}">My Listings</a></li>
+            <li><a href="{{pathFor route='mymessages'}}">Messages</a></li>
+            <li><a href="{{pathFor route='favorites'}}">Favorites</a></li>
+            {{/if}}
+            <li><a href="{{pathFor route='about'}}">About</a></li>
+          </ul>
+          
+          <ul class="nav navbar-nav navbar-right">
+            <li>{{> loginButtons align="right"}}</li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+
+    {{> yield}}
+
+</template>

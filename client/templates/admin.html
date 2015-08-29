@@ -1,0 +1,36 @@
+<template name="admin">
+    <div class="col-md-6 left-side">
+    <h2>Listings&nbsp;&nbsp;<a href="/new" style="font-size:65%;"><i class="fa fa-plus"></i> Add Listing</a></h2>
+    <ul>
+    {{#each results}}
+    <li><a href="{{pathFor route='listing' _id=_id }}">{{title}}</a> {{#if approved}}<i class="fa fa-check"></i>{{/if}} (userId:{{userId._id}})&nbsp;&nbsp;<a href="{{pathFor route='update' _id=_id }}"><i class="fa fa-pencil"></i></a>&nbsp;&nbsp;<a href="#" id="deletelisting"><i class="fa fa-trash-o"></i></a>
+    
+    {{#unless stripeCustomerId}}
+    &nbsp;&nbsp;
+    <button type="button" class="btn btn-warning btn-xs" id="pay">
+      <span class="glyphicon glyphicon-usd" aria-hidden="true"></span> Activate
+    </button>
+    {{/unless}}
+
+    </li>
+    {{/each}}
+    </ul>
+    </div>
+    <div class="col-md-3 left-side">
+    <h2>Contacts</h2>
+    <ul>
+    {{#each contacts}}
+    <li>{{comment}}&nbsp;&nbsp;<a href="#" id="deletecontact"><i class="fa fa-trash-o"></i></a></li>
+    {{/each}}
+    </ul>
+    </div>
+    <div class="col-md-3 left-side">
+    <h2>Users</h2>
+    <ul>
+    {{#each users}}
+    <li>{{profile.lastname}}, {{profile.firstname}} ({{_id}})&nbsp;&nbsp;<a href="#" id="deleteuser"><i class="fa fa-trash-o"></i></a></li>
+    {{/each}}
+    </ul>
+    </div>
+
+</template>

@@ -1,0 +1,13 @@
+<template name="favorites">
+  <div class="always-spacey"></div>
+  <div class="col-md-6">
+    <h1>My Favorites</h1>
+    {{#unless results.count}}0 listings{{/unless}}
+    <ul>
+    {{#each results}}
+    <li><a href="{{pathFor route='listing' _id=listing._id }}">{{listing.title}}</a></li>
+    {{/each}}
+    </ul>
+  </div>
+
+</template>

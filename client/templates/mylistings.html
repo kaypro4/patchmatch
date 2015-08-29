@@ -1,0 +1,26 @@
+<template name="mylistings">
+    <div class="col-md-12 left-side">
+    {{#unless isVerified}}<div class="alert alert-warning" role="alert">Your email is not yet verified so you cannot create a listing or contact anyone on the site.  <a href="#" id="sendverifyemail">Verify your email</a> now to start in the fun!</div>{{/unless}}
+    <h2>Your Listings&nbsp;&nbsp;{{#if isVerified}}<a href="/new" style="font-size:65%;"><i class="fa fa-plus"></i> Add Listing</a>{{/if}}</h2>
+    {{#unless results.count}}0 listings{{/unless}}
+    <ul>
+    {{#each results}}
+    <li><a href="{{pathFor route='listing' _id=_id }}">{{title}}</a>&nbsp;&nbsp;<a href="{{pathFor route='update' _id=_id }}"><i class="fa fa-pencil"></i></a>&nbsp;&nbsp;<a href="#" id="delete"><i class="fa fa-trash-o"></i></a>
+    
+    {{#unless approved}}
+    &nbsp;&nbsp;
+    <i class="fa fa-exclamation-circle"></i> Approval Pending
+    {{else}}
+      {{#unless stripeCustomerId}}
+      &nbsp;&nbsp;
+      <button type="button" class="btn btn-warning btn-xs" id="pay">
+        <span class="glyphicon glyphicon-usd" aria-hidden="true"></span> Activate
+      </button>
+      {{/unless}}
+    {{/unless}}
+
+    </li>
+    {{/each}}
+    </ul>
+    </div>
+</template>

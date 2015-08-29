@@ -1,0 +1,346 @@
+<template name="commentModal">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Contact</h3>
+                </div>
+
+                <div class="modal-body">
+                    {{#unless isVerified}}<div class="alert alert-warning" role="alert">Your email is not yet verified so you cannot contact anyone on the site.  <a href="#" id="sendverifyemail">Verify your email</a> now to start in the fun!</div>{{/unless}}
+                    {{#if isVerified}}
+                    {{#autoForm id="insertComment" type="insert" collection="Contacts"}}
+                    {{> afQuickField name="comment" rows=6}}
+                    {{> afQuickField name="listingId" value=listingid}}
+                     
+                    <button class="btn btn-default" type="submit">Submit</button>
+                    {{/autoForm}}
+                    {{/if}}
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="contactReply">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Reply</h3>
+                </div>
+
+
+                <div class="modal-body">
+                  {{#unless isVerified}}<div class="alert alert-warning" role="alert">Your email is not yet verified so you cannot contact anyone on the site.  <a href="#" id="sendverifyemail">Verify your email</a> now to start in the fun!</div>{{/unless}}
+                  
+                  {{#if isVerified}}
+                  <h3>Reply to: {{contacts.profile.firstname}} {{contacts.profile.lastname}}</h3>
+                  <br />
+      
+
+                    {{#autoForm id="insertComment" type="insert" collection="Contacts"}}
+                    {{> afQuickField name="comment" rows=6}}
+                    {{> afQuickField name="listingId" value=listingid}}
+                    {{> afQuickField name="userIdTo" value=contacts._id}}
+                     
+                    <button class="btn btn-default" type="submit">Submit</button>
+                    {{/autoForm}}
+                  {{/if}}
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="deleteConfirm">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Delete Listing</h3>
+                </div>
+                <div class="modal-body">
+      
+                Deleting a listing is permanent and cannot be undone.  Are you sure that you would like to delete this listing and all of its related content? This will also delete the payment plan associated with this listing.
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                  <a class="btn btn-danger btn-ok" id="deleteit">Delete</a>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="deleteConfirmContact">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Delete Contact</h3>
+                </div>
+                <div class="modal-body">
+      
+                Deleting a contact is permanent and cannot be undone.  Are you sure that you would like to delete this contact?
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                  <a class="btn btn-danger btn-ok" id="deleteit">Delete</a>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="deleteConfirmUser">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Delete User</h3>
+                </div>
+                <div class="modal-body">
+      
+                Deleting a user is permanent and cannot be undone.  Are you sure that you would like to delete this user and all of its related content? This will also delete the payment plan associated with this users listings.
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                  <a class="btn btn-danger btn-ok" id="deleteit">Delete</a>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</template>
+
+
+<template name="termsModal">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Web Site Terms and Conditions of Use</h3>
+                </div>
+
+                <div class="modal-body">
+
+                <h3>
+                  1. Terms
+                </h3>
+
+                <p>
+                  By accessing this web site, you are agreeing to be bound by these 
+                  web site Terms and Conditions of Use, all applicable laws and regulations, 
+                  and agree that you are responsible for compliance with any applicable local 
+                  laws. If you do not agree with any of these terms, you are prohibited from 
+                  using or accessing this site. The materials contained in this web site are 
+                  protected by applicable copyright and trade mark law.
+                </p>
+
+                <h3>
+                  2. Use License
+                </h3>
+
+                <ol type="a">
+                  <li>
+                    Permission is granted to temporarily download one copy of the materials 
+                    (information or software) on Tiny Acre's web site for personal, 
+                    non-commercial transitory viewing only. This is the grant of a license, 
+                    not a transfer of title, and under this license you may not:
+                    
+                    <ol type="i">
+                      <li>modify or copy the materials;</li>
+                      <li>use the materials for any commercial purpose, or for any public display (commercial or non-commercial);</li>
+                      <li>attempt to decompile or reverse engineer any software contained on Tiny Acre's web site;</li>
+                      <li>remove any copyright or other proprietary notations from the materials; or</li>
+                      <li>transfer the materials to another person or "mirror" the materials on any other server.</li>
+                    </ol>
+                  </li>
+                  <li>
+                    This license shall automatically terminate if you violate any of these restrictions and may be terminated by Tiny Acre at any time. Upon terminating your viewing of these materials or upon the termination of this license, you must destroy any downloaded materials in your possession whether in electronic or printed format.
+                  </li>
+                </ol>
+
+                <h3>
+                  3. Disclaimer
+                </h3>
+
+                <ol type="a">
+                  <li>
+                    The materials on Tiny Acre's web site are provided "as is". Tiny Acre makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties, including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights. Further, Tiny Acre does not warrant or make any representations concerning the accuracy, likely results, or reliability of the use of the materials on its Internet web site or otherwise relating to such materials or on any sites linked to this site.
+                  </li>
+                </ol>
+
+                <h3>
+                  4. Limitations
+                </h3>
+
+                <p>
+                  In no event shall Tiny Acre or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption,) arising out of the use or inability to use the materials on Tiny Acre's Internet site, even if Tiny Acre or a Tiny Acre authorized representative has been notified orally or in writing of the possibility of such damage. Because some jurisdictions do not allow limitations on implied warranties, or limitations of liability for consequential or incidental damages, these limitations may not apply to you.
+                </p>
+                      
+                <h3>
+                  5. Revisions and Errata
+                </h3>
+
+                <p>
+                  The materials appearing on Tiny Acre's web site could include technical, typographical, or photographic errors. Tiny Acre does not warrant that any of the materials on its web site are accurate, complete, or current. Tiny Acre may make changes to the materials contained on its web site at any time without notice. Tiny Acre does not, however, make any commitment to update the materials.
+                </p>
+
+                <h3>
+                  6. Links
+                </h3>
+
+                <p>
+                  Tiny Acre has not reviewed all of the sites linked to its Internet web site and is not responsible for the contents of any such linked site. The inclusion of any link does not imply endorsement by Tiny Acre of the site. Use of any such linked web site is at the user's own risk.
+                </p>
+
+                <h3>
+                  7. Site Terms of Use Modifications
+                </h3>
+
+                <p>
+                  Tiny Acre may revise these terms of use for its web site at any time without notice. By using this web site you are agreeing to be bound by the then current version of these Terms and Conditions of Use.
+                </p>
+
+                <h3>
+                  8. Governing Law
+                </h3>
+
+                <p>
+                  Any claim relating to Tiny Acre's web site shall be governed by the laws of the State of California without regard to its conflict of law provisions.
+                </p>
+
+                <p>
+                  General Terms and Conditions applicable to Use of a Web Site.
+                </p>
+
+
+
+                <h2>
+                  Privacy Policy
+                </h2>
+
+                <p>
+                  Your privacy is very important to us. Accordingly, we have developed this Policy in order for you to understand how we collect, use, communicate and disclose and make use of personal information. The following outlines our privacy policy.
+                </p>
+
+                <ul>
+                  <li>
+                    Before or at the time of collecting personal information, we will identify the purposes for which information is being collected.
+                  </li>
+                  <li>
+                    We will collect and use of personal information solely with the objective of fulfilling those purposes specified by us and for other compatible purposes, unless we obtain the consent of the individual concerned or as required by law.   
+                  </li>
+                  <li>
+                    We will only retain personal information as long as necessary for the fulfillment of those purposes. 
+                  </li>
+                  <li>
+                    We will collect personal information by lawful and fair means and, where appropriate, with the knowledge or consent of the individual concerned. 
+                  </li>
+                  <li>
+                    Personal data should be relevant to the purposes for which it is to be used, and, to the extent necessary for those purposes, should be accurate, complete, and up-to-date. 
+                  </li>
+                  <li>
+                    We will protect personal information by reasonable security safeguards against loss or theft, as well as unauthorized access, disclosure, copying, use or modification.
+                  </li>
+                  <li>
+                    We will make readily available to customers information about our policies and practices relating to the management of personal information. 
+                  </li>
+                </ul>
+
+                <p>
+                  We are committed to conducting our business in accordance with these principles in order to ensure that the confidentiality of personal information is protected and maintained. 
+                </p>    
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="outOfBoundsModal">
+    <div class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h3 class="modal-title">Out of Area</h3>
+                </div>
+
+                <div class="modal-body">
+                <p>
+                  Your search didn't return any results or they are outside of our currently supported <strong>Bay Area, California</strong> bounds. Please sign up below to be alerted as we expand.
+                </p>
+
+                <!-- Begin MailChimp Signup Form -->
+                <link href="//cdn-images.mailchimp.com/embedcode/classic-081711.css" rel="stylesheet" type="text/css">
+                <style type="text/css">
+                  #mc_embed_signup{background:#fff; clear:left; font:14px Helvetica,Arial,sans-serif; }
+                  /* Add your own MailChimp form style overrides in your site stylesheet or in this style block.
+                     We recommend moving this block and the preceding CSS link to the HEAD of your HTML file. */
+                </style>
+                <div id="mc_embed_signup">
+                <form action="//clinecollett.us8.list-manage.com/subscribe/post?u=8c9d3628b9b1d6c864eba3952&amp;id=3b80390929" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+                    <div id="mc_embed_signup_scroll">
+                <div class="indicates-required"><span class="asterisk">*</span> indicates required</div>
+                <div class="mc-field-group">
+                  <label for="mce-EMAIL">Email Address  <span class="asterisk">*</span>
+                </label>
+                  <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL">
+                </div>
+                <div class="mc-field-group">
+                  <label for="mce-FNAME">First Name </label>
+                  <input type="text" value="" name="FNAME" class="" id="mce-FNAME">
+                </div>
+                <div class="mc-field-group">
+                  <label for="mce-LNAME">Last Name </label>
+                  <input type="text" value="" name="LNAME" class="" id="mce-LNAME">
+                </div>
+                  <div id="mce-responses" class="clear">
+                    <div class="response" id="mce-error-response" style="display:none"></div>
+                    <div class="response" id="mce-success-response" style="display:none"></div>
+                  </div>    <!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+                    <div style="position: absolute; left: -5000px;"><input type="text" name="b_8c9d3628b9b1d6c864eba3952_3b80390929" tabindex="-1" value=""></div>
+                    <div class="clear"><input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button"></div>
+                    </div>
+                </form>
+                </div>
+                <script type='text/javascript' src='//s3.amazonaws.com/downloads.mailchimp.com/js/mc-validate.js'></script><script type='text/javascript'>(function($) {window.fnames = new Array(); window.ftypes = new Array();fnames[0]='EMAIL';ftypes[0]='email';fnames[1]='FNAME';ftypes[1]='text';fnames[2]='LNAME';ftypes[2]='text';}(jQuery));var $mcj = jQuery.noConflict(true);</script>
+                <!--End mc_embed_signup-->
+                </div>
+
+            </div>
+        </div>
+    </div>
+</template>
+

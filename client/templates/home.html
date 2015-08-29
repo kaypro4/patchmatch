@@ -1,0 +1,71 @@
+<template name="home">
+
+    <div class="col-md-7 col-sm-6 left-side home" id="listings">
+
+      <div id="filters" class="collapse in">
+        <div class="row filters">
+          <div class="col-md-6 col-xs-12">
+            <select name="listingType" class="form-control" id="listingtype">
+              <option value="spot house">Show All</option>
+              <option value="spot">Tiny Parking Spots Only</option>
+              <option value="house">Tiny Houses Only</option>
+            </select>
+          </div>
+          <div class="col-md-6 col-xs-12 verified">
+             <label for="verified"><input type="checkbox" name="verified" id="verified" value="1"> Tiny Acre Verified Listings Only&nbsp;&nbsp;<a href="{{pathFor route='about'}}"><img src="/images/verified_badge.png" title="Tiny Acre Verified Badge: Click to learn more" height="23px"></a></label>
+          </div>
+
+        </div>
+        <div class="row filters">
+          <div class="col-xs-12">
+            <div id="slider-low"></div><div id="slider"></div><div id="slider-high"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row filtertoggle">
+        <div class="col-xs-12" style="text-align:center;">
+          <a href="#" data-toggle="collapse" data-target="#filters" id="filtertoggle"><i class="fa fa-filter"></i> show/hide filters</a>
+        </div>
+      </div>
+      
+      
+      <div class="hidden-xs">
+        {{#unless results.count}}
+          <h4>We couldn’t find any results that matched your criteria, but tweaking your search may help. Here are some ideas:</h4>
+          <ul>
+          <li>Remove some filters.</li>
+          <li>Expand the area of your search.</li>
+          <li>Search for a city, address, or landmark.</li>
+          </ul>
+        {{/unless}}
+        {{#each results}}
+          <div class="col-md-6">
+          <div class="listing">
+            <a href="{{pathFor route='listing' _id=_id }}">
+              {{#if verified}}<div class="overlay-verified"><img src="/images/verified_badge.png" title="Tiny Acre Verified Listing" width="70%" height="70%"></div>{{/if}}
+              <div class="overlay-price">$ {{price}}/mo</div>
+              <img src="{{photourl.url store='tiles'}}" class="img-responsive" style="width:100%;"/>
+              <div class="details"><h3 class="listing-title">{{title}}</h3></div>
+            </a>
+             {{#unless isOwner userId}}
+              {{#if currentUser}}
+              <div class="contact-link"><a href="#" id="comment">Contact <i class="fa fa-envelope"></i></a></div>
+              {{/if}}
+            {{/unless}}
+
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="col-md-5 col-sm-6 right-side home">
+     <div id="overlay">
+       <form class="locate-search">
+        <input type="text" name="text" placeholder="Find location" style="width:75%;" />
+       </form>
+     </div>
+
+    {{> map}}
+    </div>
+</template>

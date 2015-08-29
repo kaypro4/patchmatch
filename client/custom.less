@@ -8,8 +8,53 @@ html, body, .right-side.home, #map {
   width:100%;position:relative;
 }
 
-body,.navbar-brand,.navbar-nav{
+a {
+  color: #4095AD;
+}
+
+.noUi-connect {
+  background: #E6E6E6;
+  box-shadow: none;
+
+}
+
+body{
 	font-family: 'Open Sans', serif;
+}
+
+.navbar-brand, .navbar-nav, h1, h2, h3, h4{
+  font-family: 'Merriweather Sans', sans-serif;
+}
+
+.navbar{
+  background-color: #334852;
+  border-color: #334852;
+  padding-left: 8px;
+  padding-right: 8px;
+      box-shadow: 0 0 5px 0 rgba(0,0,0,0.7);
+}
+
+.navbar-brand, .navbar-nav{
+  font-size:14px;
+}
+
+ul.navbar-left a:hover, ul.navbar-left a:focus { background-color: #363F43 !important; }
+
+h1, h2{
+  font-size: 26px;
+}
+
+h3{
+  font-size: 22px;
+}
+
+h4{
+  font-size: 20px;
+}
+
+.collapsing{
+    -webkit-transition: none;
+          transition: none;
 }
 
 ul{
@@ -34,8 +79,7 @@ ul.photos{
 }
 
 .left-side{
-  padding-top: 30px;
-  margin-top: 50px;
+  padding-top: 75px;
 }
 
 .right-side.home{
@@ -44,11 +88,15 @@ ul.photos{
 
 .right-side.home #overlay{
    position:absolute; 
-   top:100px; 
+   top:75px; 
    right:0px; 
    height:50px; 
    width:75%; 
    z-index: 100;
+}
+
+.left-side.home{
+  height: 100%;
 }
 
 .listing{
@@ -112,7 +160,7 @@ h3.listing-title{
 }
 
 form input[type="text"], form input[type="number"] {
-  padding: 15px;
+  padding: 12px;
   border: none;
   border-bottom: solid 2px #c9c9c9;
   transition: border 0.3s;
@@ -127,7 +175,8 @@ form input[type="text"], form input[type="number"] {
 
 #login-dropdown-list{
   padding-right: 5px;
-  padding-top: 10px;
+  padding-top: 13px;
+  padding-left: 15px;
   .login-dropdown-list,.dropdown-toggle {
     color: white;
   }
@@ -160,6 +209,7 @@ form input[type="text"], form input[type="number"] {
   font-weight: bold;
   font-size: 18px;
   padding: 4px;
+  padding-right: 20px;
 }
 
 .right-side.listing{
@@ -216,7 +266,7 @@ form input[type="text"], form input[type="number"] {
 }
 
 .nav .open > a, .nav .open > a:hover, .nav .open > a:focus {
-  background-color:#222222;
+  background-color:#334852;
 }
 
 .rating {
@@ -252,7 +302,7 @@ form input[type="text"], form input[type="number"] {
 }
 
 .panel-title {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 
@@ -260,17 +310,57 @@ form input[type="text"], form input[type="number"] {
   padding-bottom: 12px;
 }
 
+/* Compatible with Leaflet 0.7 */
+.leaflet-touch .leaflet-bar-part-single {
+  -webkit-border-radius: 7px 7px 7px 7px;
+  border-radius: 7px 7px 7px 7px;
+  border-bottom: none;
+}
+.leaflet-touch .leaflet-control-locate {
+  box-shadow: none;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  background-clip: padding-box;
+}
+
+.leaflet-control-locate a {
+  font-size: 1.4em;
+  color: #444;
+  padding:0px !important;
+}
+.leaflet-control-locate.active a {
+  color: #2074B6;
+}
+.leaflet-control-locate.active.following a {
+  color: #FC8428;
+}
+
+/* Mapbox specific adjustments */
+.leaflet-control-locate a {
+  padding: 3px 0 0 8px;
+}
+.leaflet-control-locate.requesting a {
+  padding: 3px 0 0 4px;
+}
+
+
 @media all and (max-width: 480px) {
   /* styles for iPhone/Android landscape (and really narrow browser windows) */
-
-
 
   .navbar-right {
     padding-left: 15px;
   }
 
+}
 
 
+/*full width container*/
+@media (max-width: 991px) {
+  .spacey {
+    padding-top: 0px;
+  }
+  .right-side.listing{
+    padding-top: 0px;
+  }
 }
 
 /*full width container*/
@@ -283,15 +373,6 @@ form input[type="text"], form input[type="number"] {
     padding-top: 0px;
   }
 
-  .right-side.listing{
-    padding-top: 10px;
-  }
-  #map {
-    //margin-left: 30px;
-  }
-  .right-side.home{
-    //margin-right: 75px;
-  }
   .right-side.listing{
     padding-top: 0px;
   }
@@ -306,7 +387,8 @@ form input[type="text"], form input[type="number"] {
 
   .left-side {
     padding-top: 8px;
-    padding-bottom: 8px;
+    padding-bottom: 0px;
+    margin-top: 50px;
   }
 
   #slider{
@@ -333,11 +415,18 @@ form input[type="text"], form input[type="number"] {
 
  .right-side.home #overlay{
    position:absolute; 
-   top:40px; 
+   top:10px; 
    right:0px; 
    height:50px; 
    width:75%; 
    z-index: 100;
   }
 
+.left-side.home{
+  height: auto;
 }
+
+}
+
+
+

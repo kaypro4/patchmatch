@@ -26,7 +26,6 @@ fortawesome:fontawesome
 cfs:graphicsmagick
 chrismbeckett:toastr
 momentjs:moment
-u2622:persistent-session
 ian:accounts-ui-bootstrap-3
 percolate:paginated-subscription
 gabrielengel:konecty-magnific-popup
@@ -36,3 +35,5 @@ mrgalaxy:stripe
 okgrow:analytics
 alanning:roles
 ongoworks:security
+u2622:persistent-session@=0.4.1
+mrt:nprogress
